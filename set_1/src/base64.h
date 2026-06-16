@@ -10,16 +10,19 @@ extern "C" {
 /*
  * Convert from an string to base64
  * @param str, input string
- * @param b64, output with the base64
- * @return same pointer as b64
+ * @param b64, buffer to store the ouput in base64
+ * @return 0 if success
  */
-char* str2base64(const char* str,char* b64);
+int str2base64(const char* str,char* b64);
 
 /*
  * Auxiliar routine to convert string into raw bytes
- * @remarks the buffer returned must be freed with "free"
+ * @param str input string
+ * @param bytes, output binary buffer dinamically allocated
+ * @return number of bytes in "bytes" buffer or zero
+ * @remarks the buffer returned in "bytes" must be freed with "free"
  */
-uint8_t* str2bytes(const char* str);
+size_t str2bytes(const char* str,uint8_t** bytes);
 
 #ifdef __cplusplus
 }
