@@ -7,8 +7,12 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_library(base64 src/base64.c)
 add_library(fixed_xor src/fixed_xor.c)
+add_library(repeating_xor src/repeating_xor.c)
+add_library(convert src/convert.c)
 target_include_directories(base64 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(fixed_xor PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(repeating_xor PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(convert PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 add_executable(challenge1 src/challenge1.c)
 add_executable(challenge3 src/challenge3.c)
