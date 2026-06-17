@@ -12,8 +12,10 @@ target_include_directories(fixed_xor PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 add_executable(challenge1 src/challenge1.c)
 add_executable(challenge3 src/challenge3.c)
+add_executable(challenge4 src/challenge4.c)
 target_link_libraries(challenge1 PRIVATE base64)
 target_link_libraries(challenge3 PRIVATE fixed_xor base64)
+target_link_libraries(challenge4 PRIVATE fixed_xor base64)
 
 enable_testing()
 add_subdirectory(tests)
