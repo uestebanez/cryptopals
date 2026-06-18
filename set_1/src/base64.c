@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "base64.h"
+#include "convert.h"
 
 static const uint8_t g_base64_table[64] = {
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
@@ -17,10 +18,27 @@ static const uint8_t g_base64_table[64] = {
     '+', '/'
 };
 
+static uint8_t base642byte(char c)
+{
+  if ( c >= 'A' && c <= 'Z' ) {
+    return c - 'A';
+  } else if ( c >= 'a' && c <= 'z' ) {
+    return c - 'a' + 26;
+  } else  if ( c >= '0' && c <= '9' ) {
+    return c - '0' + 52;
+  } else {
+    switch(c) {
+      case '+': return 62;
+      case '/': return 63;
+    }
+  }
+  return 255;
+}
+
 int str2base64(const char* str,char* b64)
 {
   uint8_t* buf;
-  if( NULL == str )
+  if( NULL == str || NULL == b64 )
     return -1;
 
   unsigned int remaining_bytes;
@@ -77,26 +95,58 @@ int str2base64(const char* str,char* b64)
   return 0;   
 }
 
-
-size_t str2bytes(const char* str,uint8_t** bytes)
+int base642str(const char* b64,char* str)
 {
-  size_t l = strlen(str);
-  size_t i,wr_idx = 0;
-  char aux[3]; // auxiliar to convert hex to bin               
+  if( NULL == b64 || NULL == str )
+    return -1;
 
-  if ( l == 0 || (l % 2 != 0) ) // buffer must have complete bytes
-    return 0;
+  size_t len = strlen(b64);
+  if( len < 4 )
+    return -2;
 
-  uint8_t* buf = calloc(1,l/2);
-  if( buf == NULL )
-    return 0;
-
-  for( i = 0; i < l; i+=2 ) {
-    aux[0] = str[i];
-    aux[1] = str[i+1];
-    aux[2] = 0;
-    sscanf(aux,"%hhx",&buf[wr_idx++]);
+  size_t i = 0;
+  char c1,c2,c3,c4;
+  uint8_t bytes[4];
+  size_t widx=0;
+  // block of 4 base64 chars
+  while(b64[i] != '\0') {
+    c1 = b64[i++];
+    c2 = b64[i++];
+    c3 = b64[i++];
+    c4 = b64[i++];
+    if( c3 == '=' && c4 == '=' ) { // 1 byte
+      bytes[0] = base642byte(c1);
+      bytes[1] = base642byte(c2);
+      bytes[0] <<= 2;
+      bytes[0] |= bytes[1] >> 4;
+      str += bytes2hex_ascii(bytes,1,str) * 2;
+    } else  if ( c4 == '=' ) {// 2 bytes
+      bytes[0] = base642byte(c1);
+      bytes[1] = base642byte(c2);
+      bytes[2] = base642byte(c3);
+      bytes[0] <<= 2;
+      bytes[0] |= (bytes[1] >> 4);
+      bytes[1] = (bytes[1] & 0x0F) << 4;
+      bytes[1] |= bytes[2] >> 2;
+      str += bytes2hex_ascii(bytes,2,str) * 2;
+    } else { // 3 bytes
+      bytes[0] = base642byte(c1);
+      bytes[1] = base642byte(c2);
+      bytes[2] = base642byte(c3);
+      bytes[3] = base642byte(c4);
+      bytes[0] <<= 2;
+      bytes[0] |= (bytes[1] >> 4);
+      bytes[1] = (bytes[1] & 0x0F) << 4;
+      bytes[1] |= bytes[2] >> 2;
+      bytes[2] &= 0x03;         
+      bytes[2] <<= 6;
+      bytes[2] |= bytes[3] & 0x3F;
+      str += bytes2hex_ascii(bytes,3,str) * 2;
+    }
   }
-  *bytes = buf;
-  return l/2;
+  return 0;
 }
+
+
+
+

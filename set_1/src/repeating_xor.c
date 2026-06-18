@@ -4,6 +4,7 @@
 #include <string.h>
 #include "repeating_xor.h"
 #include "base64.h"
+#include "convert.h"
 
 int repeating_xor(const char* input,const char* key, char* output)
 {

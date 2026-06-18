@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "fixed_xor.h"
 #include "base64.h"
+#include "convert.h"
 
 
 int fixed_xor(const char* input,const char* key, char* output)

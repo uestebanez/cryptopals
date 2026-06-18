@@ -15,6 +15,24 @@ extern "C" {
  */
 int ascii2hex_ascii(const char* ascii, char* hex_ascii);
 
+/**
+ * \brief Auxiliar routine to convert string into raw bytes
+ * \param str input string in ascii hex
+ * \param bytes, output binary buffer dinamically allocated
+ * \return number of bytes in "bytes" buffer or zero
+ * \remarks the buffer returned in "bytes" must be freed with "free"
+ */
+size_t str2bytes(const char* str,uint8_t** bytes);
+
+/**
+ * \brief convert a binary buffer to ascii hex string
+ * \param buf binary buffer
+ * \param len length of the binary buffer
+ * \param output buffer to store the ascii hex (must have space enough)
+ * \return number of bytes converted
+ */
+size_t bytes2hex_ascii(const uint8_t* buf,size_t len,char* output);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
