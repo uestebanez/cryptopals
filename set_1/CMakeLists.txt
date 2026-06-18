@@ -23,7 +23,7 @@ add_executable(challenge6 src/challenge6.c)
 target_link_libraries(challenge1 PRIVATE base64 convert)
 target_link_libraries(challenge3 PRIVATE fixed_xor base64 convert)
 target_link_libraries(challenge4 PRIVATE fixed_xor base64 convert)
-target_link_libraries(challenge6 PRIVATE hamming)
+target_link_libraries(challenge6 PRIVATE hamming base64 convert )
 
 enable_testing()
 add_subdirectory(tests)

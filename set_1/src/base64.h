@@ -31,6 +31,12 @@ int base642str(const char* b64,char* str);
  */
 int base642bin(const char* b64,uint8_t* buffer);
 
+/**
+ * \brief return the size in binary bytes that a base64 string will occupy
+ * after decoding it
+ */
+size_t base64_binsize(const char* b64);
+
 
 #ifdef __cplusplus
 }

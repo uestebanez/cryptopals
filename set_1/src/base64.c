@@ -197,5 +197,14 @@ int base642str(const char* b64,char* str)
 }
 
 
+size_t base64_binsize(const char* b64)
+{
+  uint8_t equals;
+  size_t len = strlen(b64);
+
+  equals = len - strcspn(b64,"=");
+  return ((len/4) * 3) - equals;
+}
+
 
 
