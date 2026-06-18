@@ -15,7 +15,21 @@ extern "C" {
  */
 int str2base64(const char* str,char* b64);
 
+/**
+ * \brief Convert from an string in base64 to an hexadecimal ascii representation
+ * \param b64, buffer with input in base64
+ * \param str, output string
+ * \return 0 if success
+ */
 int base642str(const char* b64,char* str);
+
+/**
+ * \brief Convert from an string in base64 to binary representation
+ * \param b64, buffer with input in base64
+ * \param buffer, output buffer 
+ * \return 0 if success
+ */
+int base642bin(const char* b64,uint8_t* buffer);
 
 
 #ifdef __cplusplus

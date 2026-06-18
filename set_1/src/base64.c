@@ -95,15 +95,18 @@ int str2base64(const char* str,char* b64)
   return 0;   
 }
 
-int base642str(const char* b64,char* str)
+typedef enum {
+  hex_ascii = 0,
+  binary
+}base64_conv_t;
+
+typedef union {
+  char* str;
+  uint8_t* bin;
+}base64_out_t;
+
+static int base642other(const uint8_t* b64,base64_out_t out,base64_conv_t type)
 {
-  if( NULL == b64 || NULL == str )
-    return -1;
-
-  size_t len = strlen(b64);
-  if( len < 4 )
-    return -2;
-
   size_t i = 0;
   char c1,c2,c3,c4;
   uint8_t bytes[4];
@@ -119,7 +122,11 @@ int base642str(const char* b64,char* str)
       bytes[1] = base642byte(c2);
       bytes[0] <<= 2;
       bytes[0] |= bytes[1] >> 4;
-      str += bytes2hex_ascii(bytes,1,str) * 2;
+      if( type == hex_ascii ) {
+        out.str += bytes2hex_ascii(bytes,1,out.str) * 2;
+      } else if (type == binary ) {
+        *out.bin++ = bytes[0];
+      }
     } else  if ( c4 == '=' ) {// 2 bytes
       bytes[0] = base642byte(c1);
       bytes[1] = base642byte(c2);
@@ -128,7 +135,12 @@ int base642str(const char* b64,char* str)
       bytes[0] |= (bytes[1] >> 4);
       bytes[1] = (bytes[1] & 0x0F) << 4;
       bytes[1] |= bytes[2] >> 2;
-      str += bytes2hex_ascii(bytes,2,str) * 2;
+      if( type == hex_ascii ) {
+        out.str += bytes2hex_ascii(bytes,2,out.str) * 2;
+      } else if (type == binary ) {
+        *out.bin++ = bytes[0];
+        *out.bin++ = bytes[1];
+      }
     } else { // 3 bytes
       bytes[0] = base642byte(c1);
       bytes[1] = base642byte(c2);
@@ -141,10 +153,47 @@ int base642str(const char* b64,char* str)
       bytes[2] &= 0x03;         
       bytes[2] <<= 6;
       bytes[2] |= bytes[3] & 0x3F;
-      str += bytes2hex_ascii(bytes,3,str) * 2;
+      if( type == hex_ascii ) {
+        out.str += bytes2hex_ascii(bytes,3,out.str) * 2;
+      } else if (type == binary ) {
+        *out.bin++ = bytes[0];
+        *out.bin++ = bytes[1];
+        *out.bin++ = bytes[2];
+      }
     }
   }
   return 0;
+
+}
+
+int base642bin(const char* b64,uint8_t* buffer)
+{
+  if( NULL == b64 || NULL == buffer )
+    return -1;
+
+  size_t len = strlen(b64);
+  if( len < 4 )
+    return -2;
+  
+  base64_out_t output;
+  output.bin = buffer;
+
+  return base642other(b64,output,binary);
+}
+
+int base642str(const char* b64,char* str)
+{
+  if( NULL == b64 || NULL == str )
+    return -1;
+
+  size_t len = strlen(b64);
+  if( len < 4 )
+    return -2;
+  
+  base64_out_t output;
+  output.str = str;
+
+  return base642other(b64,output,hex_ascii);
 }
 
 
