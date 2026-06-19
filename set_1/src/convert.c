@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "convert.h"
 
+
 static char nibble2hexchar(uint8_t b)
 {
   char c;
@@ -77,3 +78,20 @@ size_t bytes2hex_ascii(const uint8_t* buf,size_t len,char* output)
   *output = 0;
   return i;
 }
+
+char hex2bin(const char* hex)
+{
+  int ascii;
+  sscanf(hex,"%x",&ascii);
+  return ascii;
+}
+
+char hexchar2ascii(const char* hex)
+{
+  char aux[3];
+  aux[0] = hex[0];
+  aux[1] = hex[1];
+  aux[2] = 0;
+  return hex2bin(aux);
+}
+

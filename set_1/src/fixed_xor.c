@@ -5,7 +5,18 @@
 #include "fixed_xor.h"
 #include "base64.h"
 #include "convert.h"
+#include "score.h"
 
+static void generate_key(unsigned char c, char* key,size_t len)
+{
+  size_t i;
+  char aux[3];
+  memset(key,0,len);
+  for( i = 0; i < (len-1)/2; i++ ) {
+    sprintf(aux,"%02x",c);
+    strcat(key,aux);
+  }
+}
 
 int fixed_xor(const char* input,const char* key, char* output)
 {
@@ -37,3 +48,69 @@ int fixed_xor(const char* input,const char* key, char* output)
   }
   return 0;
 }
+
+int fixed_xor_bin(const uint8_t* input, const uint8_t* key,size_t keylen,
+                  uint8_t* output)
+{
+  if( NULL == input || NULL == key || NULL == output )
+    return -1;
+
+  size_t i;
+  for( i = 0; i < keylen; i++ ) {
+    output[i] = *input++ ^ *key++;
+  }
+  return 0;
+}
+
+int fixed_xor_try(const char* line,char* best_text,char** bkey)
+{
+  size_t i;
+  char key[strlen(line)+1];
+  char output[strlen(line)+1];
+
+  char best_key[strlen(line)+1];
+  int score;
+  int best_score = -1;
+
+  for( i = 0; i <= 255; i++) {
+    generate_key(i,key,sizeof(key));
+    memset(output,0,sizeof(output));
+    fixed_xor(line,key,output);
+    score = score_hex_ascii_text(output);
+    if( score > best_score ) {
+      best_score = score;
+      strcpy(best_text,output);
+      strcpy(best_key,key);
+    }
+  }
+  if( NULL != bkey ) {
+    *bkey = strdup(best_key);
+  }
+  return best_score;
+}
+
+int fixed_xor_bin_try(uint8_t* buf,size_t size,uint8_t* bkey)
+{
+  if( NULL == buf || NULL == bkey || 0 == size )
+    return -1;
+
+  size_t i;
+  uint8_t output[size+1];//allocate one more byte to treat as string
+  uint8_t key[size];
+  int score;
+  int best_score = -1;
+
+  for( i = 0; i <= 255; i++) {
+    memset(key,i,sizeof(key));// generate the key
+    memset(output,0,sizeof(output));
+    fixed_xor_bin(buf,key,size,output);
+    output[size]='\0'; // score text requires 
+    score = score_bytes(output,size);
+    if( score > best_score ) {
+      best_score = score;
+      *bkey= key[0];
+    }
+  }
+  return best_score;
+}
+

@@ -1,6 +1,8 @@
 #ifndef _CONVERT_H
 #define _CONVERT_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
@@ -32,6 +34,26 @@ size_t str2bytes(const char* str,uint8_t** bytes);
  * \return number of bytes converted
  */
 size_t bytes2hex_ascii(const uint8_t* buf,size_t len,char* output);
+
+/**
+ * \brief convert hexadecimal ascii char to single binary ascii char
+ * \param hex hexadecimal ascci. two chars. e.g: "A0" End of string is not needed
+ * \return the character
+ * \remarks This function does not take care if the output is a printable 
+ * character or not. This function does not look for zero end in the string,just
+ * get two chars from de string and convert them
+ */
+char hexchar2ascii(const char* hex);
+
+
+/**
+ * \brief convert a single hexadecimal char to single binary ascii char. 
+ * \param hex hexadecimal ascci. two zero-ended chars. e.g: "A0"
+ * \return the character
+ * \remarks This function does not take care if the output is a printable 
+ * character or not
+ */
+char hex2bin(const char* hex);
 
 #ifdef __cplusplus
 }
