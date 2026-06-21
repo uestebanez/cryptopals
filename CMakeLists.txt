@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(cryptopal_set1 LANGUAGES C CXX)
+project(cryptopals LANGUAGES C CXX)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
