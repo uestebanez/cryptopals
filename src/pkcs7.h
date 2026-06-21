@@ -1,0 +1,28 @@
+#ifndef _PKCS7_H
+#define _PKCS7_H
+
+#include <stdlib.h>
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
+/**
+ * \brief Add pad to the end of the buffer if needed.
+ * \param buffer input binary buffer
+ * \param bufsiz capacity of the binary buffer 
+ * \param bytesno number of bytes in the buffer
+ * \param blklen block length for the ciphering operation
+ * \return number of padding bytes or -1 if error
+ * \remarks buffer MUST have size enough for the padding if needed. That is
+ * it must have a size multiple of the blklen.
+ */
+int pkcs7_pad(uint8_t* buffer,size_t bufsiz,size_t bytesno,size_t blklen);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+
+
+#endif
