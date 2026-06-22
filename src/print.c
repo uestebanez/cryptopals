@@ -26,7 +26,7 @@ void print_bytes(FILE* file,const uint8_t* bytes,size_t len,char* prefix)
   if( prefix != NULL )
     fprintf(file,"%s",prefix);
   for(; len > 0; len--) {
-    fprintf(file,"%"PRIX8,*bytes++);
+    fprintf(file,"%02"PRIX8,*bytes++);
   }
   fprintf(file,"\n");
 }
