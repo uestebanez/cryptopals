@@ -21,7 +21,7 @@ void print_hex_as_ascii(const char* hex)
   }
 }
 
-void print_bytes(FILE* file,const uint8_t* bytes,size_t len,char* prefix)
+void print_bytes(FILE* file,const uint8_t* bytes,size_t len,const char* prefix)
 {
   if( prefix != NULL )
     fprintf(file,"%s",prefix);

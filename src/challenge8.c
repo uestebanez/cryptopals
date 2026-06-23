@@ -3,24 +3,9 @@
 #include <string.h>
 #include "convert.h"
 #include "print.h"
+#include "aes128.h"
 
 #define LINE_SIZE 60
-
-static int check_repeated_blocks(uint8_t* bytes,size_t len,size_t blksiz)
-{
-  size_t blocks = len / blksiz;
-  size_t i,j;
-  int score = 0;
-
-  for( i = 0; i < blocks-1; i++ ) {
-    for( j = i+1; j < blocks-1;j++ ) {
-      if( 0 == memcmp(&bytes[i*blksiz],&bytes[j*blksiz],blksiz) ) {
-        score++;
-      }
-    }
-  }
-  return score;
-}
 
 int main(int argc,char** argv)
 {
@@ -48,7 +33,7 @@ int main(int argc,char** argv)
     size_t bytesno = str2bytes(line,&raw_bytes);
     //print_bytes(stdout,raw_bytes,bytesno,"buf:");
     //printf("bytesno=%zu llen=%zu\n",bytesno,llen);
-    int score = check_repeated_blocks(raw_bytes,bytesno,16);
+    int score = aes128_check_repeated_blocks(raw_bytes,bytesno,16);
     if( score > 0 ) {
       printf("Score for line %zu is %d\n",lineno,score);
     }

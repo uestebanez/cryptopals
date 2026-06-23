@@ -57,8 +57,6 @@ static int build_plaintext(const uint8_t* input,
     return -3;
   }
 
-  printf("Prefix len=%zu Suffix len=%zu\n",pref_len,suf_len);
-
   if( 0 != random_bytes(output,pref_len) )
     return -4;
   output+=pref_len;
@@ -76,6 +74,18 @@ typedef enum {
   build_mode_cbc
 }build_mode_t;
 
+static const char* build_mode2txt(build_mode_t mode)
+{
+    switch(mode) {
+      case build_mode_ecb: 
+        return "ECB:";
+      case build_mode_cbc:
+        return "CBC:";
+      default:
+        return "Unknown mode!!!";
+    }
+}
+
 static 
 int build_ciphertext(const uint8_t* input,size_t input_len,
                      uint8_t* output,size_t output_size,size_t* output_len,
@@ -84,42 +94,44 @@ int build_ciphertext(const uint8_t* input,size_t input_len,
   uint8_t plain[input_len+10+10+16];
   size_t plain_len;
 
-  print_bytes(stdout,input,input_len,"input bytes:");
   int r = build_plaintext(input,input_len,plain,sizeof(plain),&plain_len);
   if( 0 != r )
   {
     printf("Error %d building plaintext\n",r);
     return r;
   }
-  printf("plain len=%zu\n",plain_len);
   int pad = pkcs7_pad(plain,sizeof(plain),plain_len,16);
   if( -1 == pad ) {
     printf("Error while padding\n");
     return -1;
   }
   plain_len+=pad;
-  printf("Padding=%d bytes\n",pad);
-  printf("new plain len=%zu\n",plain_len);
-  print_bytes(stdout,plain,plain_len,"output bytes:");
   
   uint8_t key[16];
+
   if( 0 != random_bytes(key, sizeof(key)) ) 
   {
     return -1;
   }
-  print_bytes(stdout,key,sizeof(key),"key:");
 
   random_range(build_mode_ecb,build_mode_cbc,(size_t*)mode);
   if( *mode == build_mode_ecb ) {
-    printf("Mode ECB\n");
     if( -1 == aes128_ecb_encrypt(plain,plain_len,key,output,output_size,
                                  output_len) ) {
       printf("Error encrypting\n");
       return -1;
     }
-    print_bytes(stdout,output,*output_len,"ECB:");
   } else if( *mode == build_mode_cbc ) {
-    printf("Mode CBC\n");
+    uint8_t iv[16];
+    if( 0 != random_bytes(iv, sizeof(iv)) ) 
+    {
+      return -1;
+    }
+    if( -1 == aes128_cbc_encrypt(plain,plain_len,key,iv,output,output_size,
+                                 output_len) ) {
+      printf("Error encrypting\n");
+      return -1;
+    }
   } else {
     printf("Wrong mode\n");
     return -1;
@@ -130,13 +142,28 @@ int build_ciphertext(const uint8_t* input,size_t input_len,
 
 int main(int argc,char** argv)
 {
-  uint8_t input[] = {'H','O','L','A'};
+  uint8_t input[64];
   uint8_t output[256];
   size_t output_len = 0;
   build_mode_t mode;
 
+  memset(input,'A',sizeof(input));
   srand((unsigned int)time(NULL));
-  build_ciphertext(input,sizeof(input),output,sizeof(output),&output_len,&mode);
+  for( size_t i = 0; i < 10; i++ ) {
+    if( 0 != build_ciphertext(input,sizeof(input),output,sizeof(output),
+                              &output_len,&mode) ) {
+      printf("Error generating ciphertext\n");
+      return -1;
+    }
+    print_bytes(stdout,output,output_len,build_mode2txt(mode));
+    printf("ciphered_len=%zu\n",output_len);
+    int guess = aes128_detect_ecb_cbc(output,output_len);
+    if( (guess == AES128_ECB_MODE && mode == build_mode_ecb) ||
+        (guess == AES128_CBC_MODE && mode == build_mode_cbc) )
+      printf("Guess success\n");
+    else 
+      printf("Guess fail\n");
+  }
   return 0;
 }
 
