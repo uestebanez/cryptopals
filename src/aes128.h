@@ -11,12 +11,19 @@ extern "C" {
 #define AES128_ECB_MODE 0
 #define AES128_CBC_MODE 1
 
+#define AES128_BYTES_IN_BLK 16
+
+/**
+ * \brief performs an AES128 encryption in ECB mode
+ * \return 0 if success, -1 if error
+ */
 int aes128_ecb_encrypt(const uint8_t* plain,
                        size_t plain_len,
                        const uint8_t key[16],
                        uint8_t* ciphered,
                        size_t ciphered_size,
                        size_t* ciphered_len);
+
 
 int aes128_cbc_encrypt(const uint8_t* plain,
                        size_t plain_len,
