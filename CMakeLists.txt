@@ -46,7 +46,7 @@ target_link_libraries(challenge8 PRIVATE base64 print aes128)
 target_link_libraries(challenge10 PRIVATE base64 print crypto)
 target_link_libraries(challenge11 PRIVATE print pkcs7 aes128 random)
 target_link_libraries(challenge12 PRIVATE print pkcs7 base64 aes128 random)
-target_link_libraries(challenge13 PRIVATE print)
+target_link_libraries(challenge13 PRIVATE print aes128 pkcs7 random)
 
 enable_testing()
 add_subdirectory(tests)
