@@ -128,11 +128,22 @@ static bool detect_ecb(size_t blksiz)
 
 int main(int argc,char** argv)
 {
-  uint8_t input[AES128_BYTES_IN_BLK];
-  uint8_t output[AES128_BYTES_IN_BLK*10];
+  uint8_t input[1024];
+  size_t input_len;
+
+  uint8_t output[2048];
   size_t output_len = 0;
+  
+  uint8_t block[AES128_BYTES_IN_BLK];
+  
+  uint8_t secret[1024];
+  size_t secret_len = 0;
+
+  int i,r;
   size_t blksiz;
-  int r;
+  size_t blkno;
+  int detected = true;
+  size_t prefix_len;
 
   assert(0==random_bytes(g_key,sizeof(g_key)));
   blksiz = detect_blk_size();
@@ -144,13 +155,51 @@ int main(int argc,char** argv)
   }
   printf("ECB detectec\n");
 
-  /*
-  memset(input,'A',AES128_BYTES_IN_BLK-1);
-  print_bytes(stdout,input,AES128_BYTES_IN_BLK-1,"input:"); 
-  assert(0==encryption_oracle(input,AES128_BYTES_IN_BLK-1,output,sizeof(output),
-                    &output_len));
-  print_bytes(stdout,output,output_len,"output:"); 
-  */
+ 
+  while(detected) { 
+    blkno = secret_len / blksiz;
+    prefix_len = blksiz - 1 - (secret_len - (blkno*blksiz));
+    input_len = prefix_len + secret_len;
+
+    /*    
+     printf("Block number=%zu prefix_len=%zu secret_len=%zu input_len=%zu\n",
+           blkno,prefix_len,secret_len,input_len);
+    */
+
+    memset(input,'A',prefix_len); // fill the prefix
+    r = encryption_oracle(input,prefix_len,
+                      output,sizeof(output),&output_len);
+    if( r != 0 ) {
+      printf("Error calling oracle\n");
+      return -1;
+    }
+
+    memcpy(block,&output[blkno*blksiz],blksiz); // what we want to check
+          
+    detected = false;
+    for( i = 0; i < 256; i++ ) {
+      input_len = 0;
+      memset(input,'A',prefix_len); // fill the prefix
+      input_len += prefix_len;                                    
+      memcpy(&input[input_len],secret,secret_len); // fill the known secret
+      input_len += secret_len;
+      input[input_len++] = i;
+      r = encryption_oracle(input,input_len,output,sizeof(output),
+                      &output_len);
+      if( r != 0 ) {
+        printf("Error calling oracle in loop\n");
+        return -2;
+      }
+      if( 0 == memcmp(block,&output[blkno*blksiz],blksiz) ) {
+        detected = true;
+        secret[secret_len++]=i;
+        break;
+      }
+    }
+  }
+  print_bytes(stdout,secret,secret_len,"secret:");
+  secret[secret_len]=0;
+  printf("secret:[%s]\n",secret);
   return 0;
 }
 
