@@ -19,6 +19,15 @@ extern "C" {
  * it must have a size multiple of the blklen.
  */
 int pkcs7_pad(uint8_t* buffer,size_t bufsiz,size_t bytesno,size_t blklen);
+
+/**
+ * \brief unpad a buffer
+ * \param buffer input buffer
+ * \param len length of the buffer
+ * \param blklen block length
+ * \upadded_len output parameter to store the final lenght of the unpadded buffer
+ * \return 0 if sucess, -1 if error
+ */
 int pkcs7_unpad(uint8_t* buffer,size_t len,size_t blklen,size_t* unpadded_len);
 
 #ifdef __cplusplus

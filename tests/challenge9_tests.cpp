@@ -38,3 +38,26 @@ TEST(pkcs7, blk_4 ) {
   EXPECT_TRUE(memcmp(expected2,buf2,sizeof(buf2)) == 0);
 
 }
+
+TEST(pkcs7, check_valid_pad) {
+  uint8_t buf[] = "ICE ICE BABY\x04\x04\x04\x04";//this adds a zero to the end
+  size_t unpadded_len = 0;
+
+  int r = pkcs7_unpad(buf,sizeof(buf)-1,16,&unpadded_len);
+  ASSERT_EQ(0,r);
+  ASSERT_EQ(12,unpadded_len);
+}
+
+TEST(pkcs7, check_wrong_pad) {
+  uint8_t buf[] = "ICE ICE BABY\x05\x05\x05\x05";//this adds a zero to the end
+  size_t unpadded_len = 0;
+
+  int r = pkcs7_unpad(buf,sizeof(buf)-1,16,&unpadded_len);
+  ASSERT_EQ(-1,r);
+
+  uint8_t buf2[] = "ICE ICE BABY\x01\x02\x03\x04";//this adds a zero to the end
+
+  r = pkcs7_unpad(buf,sizeof(buf)-1,16,&unpadded_len);
+  ASSERT_EQ(-1,r);
+
+}

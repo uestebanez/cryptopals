@@ -26,7 +26,7 @@ int pkcs7_unpad(uint8_t* buffer,size_t len,size_t blklen,size_t* unpadded_len)
     return -1;
   }
 
-  if (len == 0 || blklen == 0 || len % blklen != 0) {
+  if (len == 0 || blklen == 0) {
     return -1;
   }
 
