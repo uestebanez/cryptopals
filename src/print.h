@@ -1,6 +1,9 @@
 #ifndef PRINT_H
 #define PRINT_H
 
+#include <stdio.h>
+#include <stdint.h>
+
 /**
  * \brief print an hexadecimal ascii string as an ascii output
  * e.g. 6162... -> ab..
