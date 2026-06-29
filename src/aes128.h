@@ -31,8 +31,6 @@ int aes128_ecb_decrypt(const uint8_t* ciphered,
                        size_t plain_size,
                        size_t* plain_len);
 
-
-
 int aes128_cbc_encrypt(const uint8_t* plain,
                        size_t plain_len,
                        const uint8_t key[16],
@@ -40,6 +38,15 @@ int aes128_cbc_encrypt(const uint8_t* plain,
                        uint8_t* ciphered,
                        size_t ciphered_size,
                        size_t* ciphered_len);
+
+int aes128_cbc_decrypt(const uint8_t* ciphered,
+                       size_t ciphered_len,
+                       const uint8_t key[16],
+                       const uint8_t iv[16],
+                       uint8_t* plain,
+                       size_t plain_size,
+                       size_t* plain_len);
+
 
 int aes128_check_repeated_blocks(const uint8_t* bytes,
                                  size_t len,
