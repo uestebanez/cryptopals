@@ -9,6 +9,17 @@ extern "C" {
 #endif /* __cplusplus */
 
 /**
+ * \brief return the number of bytes needed for the padding
+ * \param bytesno number of bytes with information to pad
+ * \param blklen ciphering block length
+ * \return number of padding bytes
+ */
+static inline size_t pkcs7_needed_pad(size_t bytesno,size_t blklen)
+{
+  return blklen - (bytesno % blklen);
+}
+
+/**
  * \brief Add pad to the end of the buffer if needed.
  * \param buffer input binary buffer
  * \param bufsiz capacity of the binary buffer 

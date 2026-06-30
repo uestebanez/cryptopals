@@ -19,4 +19,15 @@ void print_hex_as_ascii(const char* hex);
  */
 void print_bytes(FILE* file,const uint8_t* bytes,size_t len,const char* prefix);
 
+/**
+ * \brief print a buffer of bytes in ascii if it is possible. If not, uses '.'
+ * character for each non printable char
+ * \param file file to print into
+ * \param bytes buffer with the bytes
+ * \param len length of the binary buffer
+ * \param prefix, optional parameter (can be NULL) to add a prefix to the print
+ */
+void print_bytes_as_ascii(FILE* file,const uint8_t* bytes,
+                          size_t len,const char* prefix);
+
 #endif

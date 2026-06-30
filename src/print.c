@@ -30,3 +30,17 @@ void print_bytes(FILE* file,const uint8_t* bytes,size_t len,const char* prefix)
   }
   fprintf(file,"\n");
 }
+
+void print_bytes_as_ascii(FILE* file,const uint8_t* bytes,
+                          size_t len,const char* prefix)
+{
+  if( prefix != NULL )
+    fprintf(file,"%s",prefix);
+  for(; len > 0; len--,bytes++) {
+    fprintf(file,"%c",isprint(*bytes) ? *bytes : '.');    
+  }
+  fprintf(file,"\n");
+
+}
+
+
