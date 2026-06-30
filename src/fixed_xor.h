@@ -9,10 +9,23 @@ extern "C" {
  * \brief apply an xor cipher between input and key of the same length
  * \param input input string in ascii hexadecimal format (two digits per byte)
  * \param key input key string in ascii hexadecimal format
- * \para output buffer to store the ciphering
+ * \param output buffer to store the ciphering
+ * \return 0 if sucess, -1 if error
  * \remarks all buffers must have same capacity
  */
 int fixed_xor(const char* input,const char* key, char* output);
+
+/**
+ * \brief apply an xor cipher between input and key of the same length
+ * \param input input bytes 
+ * \param key input key bytes
+ * \param key_len size of the key (and the input)
+ * \param output buffer to store the ciphering
+ * \return 0 if sucess, -1 if error
+ * \remarks all buffers must have same capacity
+ */
+int fixed_xor_bin(const uint8_t* input, const uint8_t* key,size_t keylen,
+                  uint8_t* output);
 
 
 /**

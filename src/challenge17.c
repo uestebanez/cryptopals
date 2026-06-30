@@ -55,7 +55,7 @@ static int encryption_oracle(uint8_t* iv,size_t iv_size,
     goto end;
   }
 
-  print_bytes_as_ascii(stdout,plain,psize,"Plain:");
+  print_bytes_as_ascii(stdout,plain,psize,"Plain:",NULL);
   int p = pkcs7_pad(plain,psize+pad,psize,AES128_BYTES_IN_BLK);
   if( -1 == p ) {
     r = -1;
@@ -184,11 +184,11 @@ int main(int argc,char** argv)
   printf("clen=%zu\n",clen);
   attack(iv,ciphered,clen,plain,sizeof(plain),&plen);
   printf("plen=%zu\n",plen);
-  print_bytes_as_ascii(stdout,plain,plen,"attacked plain:");
+  print_bytes_as_ascii(stdout,plain,plen,"attacked plain:",NULL);
   size_t unpadded_len = 0;
 
   if (pkcs7_unpad(plain, plen, AES128_BYTES_IN_BLK, &unpadded_len) == 0) {
-      print_bytes_as_ascii(stdout, plain, unpadded_len, "Recovered unpadded:");
+      print_bytes_as_ascii(stdout, plain, unpadded_len, "Recovered unpadded:",NULL);
   }
   return 0;
 }

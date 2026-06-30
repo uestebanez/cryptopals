@@ -1,6 +1,8 @@
 #include <string.h>
 #include <openssl/evp.h>
+#include <endian.h>
 #include "aes128.h"
+#include "fixed_xor.h"
 
 int aes128_check_repeated_blocks(const uint8_t* bytes,size_t len,size_t blksiz)
 {
@@ -256,6 +258,57 @@ end:
   EVP_CIPHER_CTX_free(ctx);
   return r == 1 ? 0 : -1;
 }
+
+int aes128_ctr_crypt(const uint8_t* input,
+                     size_t input_len,
+                     const uint8_t key[16],
+                     uint64_t nonce,
+                     uint8_t* output,
+                     size_t output_capacity,
+                     size_t* output_len)
+{
+  uint64_t counter = 0;
+  uint8_t block[AES128_BYTES_IN_BLK];
+  uint8_t key_stream[AES128_BYTES_IN_BLK];
+  size_t ciphered_len = 0;
+  size_t rd=0;
+  size_t wr=0;
+  int r;
+
+  if( input == NULL || NULL == key || NULL == output || NULL == output_len )
+    return -1;
+
+  if( output_capacity < input_len )
+    return -1;
+
+  uint64_t lend = htole64(nonce);
+  memcpy(block,&lend,8);
+  while( input_len > 0 ) {
+    size_t bytes2xor;
+    uint64_t bend = htole64(counter);
+    memcpy(&block[8],&bend,8);
+
+    r = aes128_ecb_encrypt(block,AES128_BYTES_IN_BLK,
+                           key,key_stream,AES128_BYTES_IN_BLK,
+                           &ciphered_len);
+    if( r != 0 || ciphered_len != AES128_BYTES_IN_BLK )
+      return r;
+
+    if( input_len >= AES128_BYTES_IN_BLK ) {
+      bytes2xor = AES128_BYTES_IN_BLK;
+    } else {
+      bytes2xor = input_len;
+    }
+    fixed_xor_bin(&input[rd],key_stream,bytes2xor,&output[wr]);
+    rd+=bytes2xor;
+    wr+=bytes2xor;
+    input_len-=bytes2xor;
+    counter++;
+  }
+  *output_len = wr;
+  return 0;
+}
+
 
 
 int aes128_detect_ecb_cbc(const uint8_t* ciphered,size_t ciphered_len)

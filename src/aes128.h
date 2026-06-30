@@ -47,6 +47,14 @@ int aes128_cbc_decrypt(const uint8_t* ciphered,
                        size_t plain_size,
                        size_t* plain_len);
 
+int aes128_ctr_crypt(const uint8_t* input,
+                     size_t input_len,
+                     const uint8_t key[16],
+                     uint64_t nonce,
+                     uint8_t* output,
+                     size_t output_capacity,
+                     size_t* output_len);
+
 
 int aes128_check_repeated_blocks(const uint8_t* bytes,
                                  size_t len,

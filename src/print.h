@@ -4,6 +4,10 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 /**
  * \brief print an hexadecimal ascii string as an ascii output
  * e.g. 6162... -> ab..
@@ -26,8 +30,13 @@ void print_bytes(FILE* file,const uint8_t* bytes,size_t len,const char* prefix);
  * \param bytes buffer with the bytes
  * \param len length of the binary buffer
  * \param prefix, optional parameter (can be NULL) to add a prefix to the print
+ * \param suffix, option parameter (can be NULL)
  */
 void print_bytes_as_ascii(FILE* file,const uint8_t* bytes,
-                          size_t len,const char* prefix);
+                          size_t len,const char* prefix,
+                          const char* suffix);
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif

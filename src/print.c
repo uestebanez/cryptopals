@@ -32,13 +32,16 @@ void print_bytes(FILE* file,const uint8_t* bytes,size_t len,const char* prefix)
 }
 
 void print_bytes_as_ascii(FILE* file,const uint8_t* bytes,
-                          size_t len,const char* prefix)
+                          size_t len,const char* prefix,
+                          const char* suffix)
 {
   if( prefix != NULL )
     fprintf(file,"%s",prefix);
   for(; len > 0; len--,bytes++) {
     fprintf(file,"%c",isprint(*bytes) ? *bytes : '.');    
   }
+  if( suffix )
+    fprintf(file,"%s",suffix);
   fprintf(file,"\n");
 
 }
