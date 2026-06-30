@@ -40,7 +40,7 @@ TEST(Base64, base642strEmptyBuffer) {
 }
 
 TEST(Base64, base642binEmptyBuffer) {
-  ASSERT_EQ(-1,base642bin(NULL,NULL));
+  ASSERT_EQ(-1,base642bin(NULL,NULL,NULL));
 }  
 
 TEST(Base64, str2base64LittleBuffer) {
@@ -57,8 +57,8 @@ TEST(Base64, base642strOddBuffer) {
 
 TEST(Base64, base642binOddBuffer) {
   uint8_t buffer[3];
-  ASSERT_EQ(-1,base642bin("A",NULL));
-  ASSERT_EQ(-2,base642bin("A",buffer));
+  ASSERT_EQ(-1,base642bin("A",NULL,NULL));
+  ASSERT_EQ(-2,base642bin("A",buffer,NULL));
 }
 
 TEST(Base64, str2base641Byte) {
@@ -82,11 +82,11 @@ TEST(Base64, base642str1Byte) {
 
 TEST(Base64, base642bin1Byte) {
   uint8_t str[5]={0};
-  ASSERT_EQ(0,base642bin("AA==",str));
+  ASSERT_EQ(0,base642bin("AA==",str,NULL));
   uint8_t expected[] = {0x00};
   EXPECT_EQ(memcmp(str,expected,1),0);
   expected[0] = 0x10;
-  ASSERT_EQ(0,base642bin("EA==",str));
+  ASSERT_EQ(0,base642bin("EA==",str,NULL));
   EXPECT_EQ(memcmp(str,expected,1),0);
 }
 
@@ -111,9 +111,9 @@ TEST(Base64, base642str2Byte) {
 
 TEST(Base64, base642bin2Byte) {
   uint8_t str[5]={0};
-  ASSERT_EQ(0,base642bin("AAE=",str));
+  ASSERT_EQ(0,base642bin("AAE=",str,NULL));
   EXPECT_EQ(memcmp(str,(const uint8_t []){0x00,0x01},2),0);
-  ASSERT_EQ(0,base642bin("//8=",str));
+  ASSERT_EQ(0,base642bin("//8=",str,NULL));
   EXPECT_EQ(memcmp(str,(const uint8_t[]){0xff,0xff},2),0);
 }
 
@@ -129,9 +129,9 @@ TEST(Base64, str2base643Bytes) {
 
 TEST(Base64, base642bin3Byte) {
   uint8_t str[5]={0};
-  ASSERT_EQ(0,base642bin("AAAA",str));
+  ASSERT_EQ(0,base642bin("AAAA",str,NULL));
   EXPECT_EQ(memcmp(str,(const uint8_t[]){0x0,0x0,0x0},3),0);
-  ASSERT_EQ(0,base642bin("SGVs",str));
+  ASSERT_EQ(0,base642bin("SGVs",str,NULL));
   EXPECT_EQ(memcmp(str,(const uint8_t[]){0x48,0x65,0x6C},3),0);
 }
 
@@ -159,7 +159,7 @@ TEST(Base64, base642strLong) {
 
 TEST(Base64, base642binLong) {
   uint8_t str[128]={0};
-  ASSERT_EQ(0,base642bin("SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t",str));
+  ASSERT_EQ(0,base642bin("SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t",str,NULL));
   EXPECT_EQ(memcmp(str,(const uint8_t[])\
         {0x49,0x27,0x6D,0x20,0x6B,0x69,0x6C,0x6C,0x69,0x6E,0x67,0x20,0x79,0x6F,0x75,0x72,
          0x20,0x62,0x72,0x61,0x69,0x6E,0x20,0x6C,0x69,0x6B,0x65,0x20,0x61,0x20,0x70,0x6F,

@@ -35,7 +35,7 @@ int main(int argc,char** argv)
   
   size_t binsiz = base64_binsize(text);
   uint8_t* bin = calloc(1,binsiz);
-  base642bin(text,bin);
+  base642bin(text,bin,NULL);
   uint8_t plain_text[binsiz+EVP_CIPHER_block_size(EVP_aes_128_ecb())];
   int outl = 0;
 

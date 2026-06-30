@@ -50,7 +50,7 @@ static int encryption_oracle(uint8_t* iv,size_t iv_size,
     return -1;
   }
     
-  if( 0 != base642bin(str,plain) ) {
+  if( 0 != base642bin(str,plain,NULL) ) {
     r = -1;
     goto end;
   }

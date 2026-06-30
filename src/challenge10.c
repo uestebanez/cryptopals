@@ -104,7 +104,7 @@ int main(int argc,char** argv)
   ciphered_len = base64_binsize(base64text);
   printf("Base64 content len=%zu in binary=%zu\n",base64len,ciphered_len);
   ciphered_text = malloc(ciphered_len);
-  base642bin(base64text,ciphered_text);
+  base642bin(base64text,ciphered_text,NULL);
   plain_text = malloc(ciphered_len);
   if( 0 != 
       aes128_cbc_decrypt(ciphered_text,ciphered_len,g_key,g_iv,plain_text) ) {

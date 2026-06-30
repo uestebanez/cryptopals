@@ -27,9 +27,10 @@ int base642str(const char* b64,char* str);
  * \brief Convert from an string in base64 to binary representation
  * \param b64, buffer with input in base64
  * \param buffer, output buffer 
+ * \param pointer, optional, to store the amounts of bytes in the binary buffer
  * \return 0 if success
  */
-int base642bin(const char* b64,uint8_t* buffer);
+int base642bin(const char* b64,uint8_t* buffer,size_t* bsize);
 
 /**
  * \brief return the size in binary bytes that a base64 string will occupy

@@ -34,8 +34,7 @@ TEST(crt_mode, challenge_input) {
   size_t plen = 0,clen;
   const char* expected = "Yo, VIP Let's kick it Ice, Ice, baby Ice, Ice, baby ";
 
-  ASSERT_EQ(0,base642bin(str,ciphered));
-  clen = base64_binsize(str);
+  ASSERT_EQ(0,base642bin(str,ciphered,&clen));
   int r = aes128_ctr_crypt(ciphered,clen,key,0,plain,
                            sizeof(plain),&plen);  
   ASSERT_EQ(0,r);

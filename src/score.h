@@ -9,6 +9,7 @@ extern "C" {
 
 int score_hex_ascii_text(const char* text);
 int score_bytes(const uint8_t* buffer,size_t len);
+int score_char(char c);
 
 #ifdef __cplusplus
 }

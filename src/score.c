@@ -12,7 +12,8 @@ static bool char_is_interesting(char c)
       return false;
 }
 
-static int score_char(char c) {
+int score_char(char c) 
+{
   int score = 0;
   if( char_is_interesting(c) ) {
         char low = tolower(c);

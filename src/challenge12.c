@@ -47,7 +47,7 @@ static int encryption_oracle(const uint8_t* input,
   if ( NULL == bin )
     return -1;
 
-  if ( 0 != base642bin(g_unknown_string,bin) ) {
+  if ( 0 != base642bin(g_unknown_string,bin,NULL) ) {
     r = -1;
     goto end;
   }

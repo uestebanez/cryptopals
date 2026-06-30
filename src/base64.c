@@ -166,7 +166,7 @@ static int base642other(const uint8_t* b64,base64_out_t out,base64_conv_t type)
 
 }
 
-int base642bin(const char* b64,uint8_t* buffer)
+int base642bin(const char* b64,uint8_t* buffer,size_t* bsize)
 {
   if( NULL == b64 || NULL == buffer )
     return -1;
@@ -174,7 +174,9 @@ int base642bin(const char* b64,uint8_t* buffer)
   size_t len = strlen(b64);
   if( len < 4 )
     return -2;
-  
+
+  if( NULL != bsize )
+    *bsize = base64_binsize(b64);
   base64_out_t output;
   output.bin = buffer;
 

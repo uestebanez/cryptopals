@@ -79,7 +79,7 @@ int main(int argc,char** argv)
   }
   size_t binsiz = base64_binsize(text);
   uint8_t* bin = calloc(1,binsiz);
-  base642bin(text,bin);
+  base642bin(text,bin,NULL);
   size_t best_keysiz = best_keysize(bin,binsiz); 
   printf("Best key size is:%zu\n",best_keysiz);
 
