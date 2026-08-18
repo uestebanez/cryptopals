@@ -3,6 +3,49 @@
 Este documento recoge las ideas principales que vamos descubriendo al resolver
 los retos de Cryptopals.
 
+## Reto 17: ataque de oráculo de padding en CBC
+
+`challenge17.c` simula un servicio que cifra uno de diez mensajes codificados
+en Base64. `encryption_oracle()` elige el mensaje, lo decodifica, aplica
+padding PKCS#7 y lo cifra con AES-CBC usando una clave global aleatoria y un IV
+aleatorio. El atacante recibe solo el IV y el texto cifrado.
+
+La función `padding_oracle()` representa la vulnerabilidad: descifra los datos
+y responde únicamente si el padding PKCS#7 es válido. En un servicio real esa
+respuesta suele filtrarse mediante mensajes de error, códigos HTTP o tiempos
+de respuesta distintos. Aunque no revela directamente el texto, basta para
+recuperarlo.
+
+Para un bloque cifrado `Cᵢ`, CBC calcula el texto plano como:
+
+```text
+Pᵢ = Dₖ(Cᵢ) XOR Cᵢ₋₁
+```
+
+Para el primer bloque, `Cᵢ₋₁` es el IV. `attack_block()` conserva `Cᵢ` y
+modifica el bloque anterior —o el IV— que entrega al oráculo. Ataca de derecha
+a izquierda para forzar primero un padding `0x01`, después `0x02 0x02`, y así
+hasta completar los 16 bytes del bloque.
+
+La variable `deciphered` guarda el valor intermedio `Dₖ(Cᵢ)`. Si una prueba
+`modified_blk[b]` hace válido un padding de valor `pad`, se cumple:
+
+```text
+modified_blk[b] XOR Dₖ(Cᵢ)[b] = pad
+```
+
+Por tanto el código obtiene el byte intermedio como
+`modified_blk[b] XOR pad` y recupera el texto plano aplicándole XOR con el
+byte original del bloque anterior. Los bytes que ya se conocen se ajustan en
+cada iteración para que continúen formando el nuevo padding deseado.
+
+`attack()` repite este procedimiento para cada bloque, usando el IV como
+bloque previo del primero y el bloque cifrado anterior para los demás. Al
+final, `pkcs7_unpad()` elimina el padding recuperado. La enseñanza es que CBC
+sin autenticación no es seguro cuando un atacante puede distinguir un error de
+padding: hay que usar un modo autenticado, como AES-GCM o ChaCha20-Poly1305,
+y no exponer errores de descifrado diferenciables.
+
 ## Reto 23: clonar un MT19937 a partir de sus salidas
 
 MT19937 no es un generador criptográficamente seguro. Aunque su estado interno
