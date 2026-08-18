@@ -34,3 +34,37 @@ La conclusión práctica es importante: MT19937 sirve para simulaciones o usos
 no sensibles, pero nunca para generar secretos, tokens de sesión, nonces ni
 claves. Si un atacante puede observar suficientes salidas, puede predecir todas
 las futuras.
+
+## Reto 24: semillas de 16 bits
+
+Una semilla de 16 bits solo tiene 65.536 valores posibles. Aunque se genere
+con una fuente criptográficamente segura, ese espacio es lo bastante pequeño
+para probar exhaustivamente todas las semillas y recuperar la correcta si se
+conoce parte del texto plano. La calidad de la fuente aleatoria no compensa un
+tamaño de semilla insuficiente.
+
+Un cifrador de flujo genera una secuencia de bytes (*keystream*) y aplica XOR
+byte a byte con el texto plano. En este reto, cada salida de 32 bits de MT19937
+se divide explícitamente, de menos a más significativo, en cuatro bytes de la
+secuencia.
+
+MT19937 es determinista: inicializarlo de nuevo con la misma semilla produce
+el mismo *keystream*. Como XOR es su propia inversa, esa misma rutina sirve
+para cifrar y descifrar siempre que reciba la misma semilla.
+
+Un sufijo conocido de texto plano permite comprobar candidatas a semilla: se
+descifra el final del mensaje con cada *keystream* candidato y se busca que
+coincida con ese sufijo. En este reto usamos catorce caracteres `A` conocidos.
+Recorrer las 65.536 semillas posibles es un ataque de fuerza bruta asequible.
+
+Un timestamp no es una semilla secreta: un atacante puede aproximar el momento
+de creación de un token y probar las semillas de ese intervalo. Por ello,
+MT19937 inicializado con la hora actual tampoco sirve para crear tokens de
+seguridad.
+
+Si se conoce que el token se generó hace menos de 256 segundos, basta con
+probar esos timestamps recientes y comparar los tokens generados. El espacio
+de búsqueda queda reducido a unas pocas centenas de candidatas.
+
+Para reproducir el ataque no es necesario esperar físicamente: se puede
+simular un instante posterior al de creación y buscar hacia atrás desde él.
