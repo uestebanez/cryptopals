@@ -584,46 +584,84 @@ rechazaría la cookie.
 
 ## Reto 17: ataque de oráculo de padding en CBC
 
-`challenge17.c` simula un servicio que cifra uno de diez mensajes codificados
-en Base64. `encryption_oracle()` elige el mensaje, lo decodifica, aplica
-padding PKCS#7 y lo cifra con AES-CBC usando una clave global aleatoria y un IV
-aleatorio. El atacante recibe solo el IV y el texto cifrado.
+Imaginemos un servicio que cifra un mensaje secreto con AES-CBC y entrega al
+cliente el IV y el criptograma. Más tarde acepta esos datos para descifrarlos.
+El atacante no conoce la clave ni el mensaje, pero puede enviar versiones
+modificadas del IV o del criptograma y observar un detalle de la respuesta:
+«el padding es válido» o «el padding es inválido».
 
-La función `padding_oracle()` representa la vulnerabilidad: descifra los datos
-y responde únicamente si el padding PKCS#7 es válido. En un servicio real esa
-respuesta suele filtrarse mediante mensajes de error, códigos HTTP o tiempos
-de respuesta distintos. Aunque no revela directamente el texto, basta para
-recuperarlo.
+Esa respuesta de sí/no es un *oráculo de padding*. No parece revelar el texto,
+pero el atacante puede hacer muchas consultas y cada una le informa sobre un
+byte. En una aplicación real, el oráculo puede aparecer accidentalmente como
+un código HTTP diferente, un mensaje de error distinto o una diferencia de
+tiempo entre un fallo de padding y otro fallo posterior.
 
-Para un bloque cifrado `Cᵢ`, CBC calcula el texto plano como:
+El padding PKCS#7 completa el último bloque con bytes iguales. Por ejemplo,
+si faltan tres bytes para completar un bloque, el final debe ser:
+
+```text
+... 03 03 03
+```
+
+Al descifrar, el servicio comprueba que el último byte indique una longitud
+válida y que los últimos bytes coincidan con ella. El ataque convierte esa
+comprobación en una herramienta para aprender el mensaje.
+
+Para entender por qué, consideremos un bloque cifrado `Cᵢ`. Al descifrar CBC
+se calcula:
 
 ```text
 Pᵢ = Dₖ(Cᵢ) XOR Cᵢ₋₁
 ```
 
-Para el primer bloque, `Cᵢ₋₁` es el IV. `attack_block()` conserva `Cᵢ` y
-modifica el bloque anterior —o el IV— que entrega al oráculo. Ataca de derecha
-a izquierda para forzar primero un padding `0x01`, después `0x02 0x02`, y así
-hasta completar los 16 bytes del bloque.
-
-La variable `deciphered` guarda el valor intermedio `Dₖ(Cᵢ)`. Si una prueba
-`modified_blk[b]` hace válido un padding de valor `pad`, se cumple:
+Para el primer bloque, `Cᵢ₋₁` es el IV. Llamaremos `Iᵢ` al valor intermedio
+`Dₖ(Cᵢ)`. El atacante no conoce `Iᵢ`, pero puede conservar `Cᵢ` y sustituir el
+bloque anterior por otro bloque elegido `M`:
 
 ```text
-modified_blk[b] XOR Dₖ(Cᵢ)[b] = pad
+texto que verá el servidor = Iᵢ XOR M
 ```
 
-Por tanto el código obtiene el byte intermedio como
-`modified_blk[b] XOR pad` y recupera el texto plano aplicándole XOR con el
-byte original del bloque anterior. Los bytes que ya se conocen se ajustan en
-cada iteración para que continúen formando el nuevo padding deseado.
+El atacante empieza por el último byte del bloque. Prueba los 256 valores
+posibles para el último byte de `M` y consulta el oráculo. Cuando el oráculo
+acepta el padding `01`, sabe que se ha cumplido:
 
-`attack()` repite este procedimiento para cada bloque, usando el IV como
-bloque previo del primero y el bloque cifrado anterior para los demás. Al
-final, `pkcs7_unpad()` elimina el padding recuperado. La enseñanza es que CBC
-sin autenticación no es seguro cuando un atacante puede distinguir un error de
-padding: hay que usar un modo autenticado, como AES-GCM o ChaCha20-Poly1305,
-y no exponer errores de descifrado diferenciables.
+```text
+Iᵢ[15] XOR M[15] = 01
+```
+
+De ahí obtiene el byte intermedio:
+
+```text
+Iᵢ[15] = M[15] XOR 01
+```
+
+Ya conoce `Iᵢ[15]`, aunque siga sin conocer la clave. Para recuperar el último
+byte real del mensaje, aplica XOR con el byte original del bloque anterior:
+
+```text
+Pᵢ[15] = Iᵢ[15] XOR Cᵢ₋₁[15]
+```
+
+Después recupera el byte anterior. Esta vez quiere forzar un padding de dos
+bytes, `02 02`. Ajusta el último byte de `M` para que `Iᵢ[15] XOR M[15]` sea
+`02`, y prueba los 256 valores del byte anterior hasta que el oráculo acepte.
+La aceptación implica que los dos últimos bytes son `02 02`; así obtiene
+`Iᵢ[14]`. Se repite el proceso hacia la izquierda, forzando `03 03 03`, luego
+`04 04 04 04`, y así hasta recuperar los 16 bytes del bloque.
+
+El mismo procedimiento se aplica a cada bloque del criptograma. Para el primer
+bloque se modifica el IV; para los demás se modifica el bloque cifrado que los
+precede. Al final se elimina el padding PKCS#7 recuperado y queda el mensaje
+original. Una implementación robusta también confirma las coincidencias del
+último byte, porque algunas modificaciones pueden producir padding válido por
+casualidad.
+
+El ataque no rompe AES ni adivina la clave. Solo aprovecha dos propiedades:
+CBC permite controlar el XOR del bloque anterior y el servicio revela si el
+resultado cumple una regla de padding. La defensa es autenticar el mensaje
+antes de interpretarlo, preferiblemente con AEAD como AES-GCM o
+ChaCha20-Poly1305, y no exponer errores de descifrado distinguibles.
 
 ## Reto 23: clonar un MT19937 a partir de sus salidas
 
