@@ -42,6 +42,39 @@ que incluya muchos dígitos y signos de puntuación. Para este reto funciona
 porque el texto oculto es inglés normal y destaca frente a resultados
 aleatorios.
 
+## Reto 5: XOR de clave repetida
+
+El reto 5 implementa el cifrado XOR de clave repetida en
+`src/repeating_xor.c`. A diferencia del reto 4, la clave no se limita a un
+solo byte: sus bytes se reutilizan cíclicamente hasta cubrir todo el mensaje.
+Para un texto `P` y una clave de longitud `m`, el cifrado es:
+
+```text
+C[i] = P[i] XOR K[i mod m]
+```
+
+Como XOR es reversible, descifrar usa exactamente la misma operación y la
+misma clave. Con la clave `ICE`, por ejemplo, el cuarto byte vuelve a usar
+`I`, el quinto `C` y el sexto `E`.
+
+La función `repeating_xor()` trabaja con cadenas de texto que codifican bytes
+en hexadecimal. Por eso comprueba que la entrada tenga un número par de
+caracteres y avanza de dos en dos: `input_aux` y `key_aux` convierten cada par
+hexadecimal a un byte, se aplica XOR, y el resultado se vuelve a escribir como
+dos dígitos hexadecimales. Los índices de la clave se calculan con módulo para
+volver al principio cuando se agota.
+
+Las pruebas de `tests/challenge5_tests.cpp` convierten el texto ASCII y la
+clave a hexadecimal con `ascii2hex_ascii()`. Verifican casos de error, un byte
+idéntico que produce `00`, un fragmento corto y el texto completo con la clave
+`ICE`.
+
+Este esquema también se conoce como XOR de clave repetida o un Vigenère sobre
+bytes. No es seguro: cada posición separada por la longitud de la clave se
+cifra con el mismo byte de clave, lo que deja patrones estadísticos. Si se
+estima la longitud de la clave, el criptograma puede dividirse en columnas y
+atacar cada una como un XOR de un byte, que es la idea del reto 6.
+
 ## Reto 17: ataque de oráculo de padding en CBC
 
 `challenge17.c` simula un servicio que cifra uno de diez mensajes codificados
