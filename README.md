@@ -190,6 +190,49 @@ repeticiones claras. La lección práctica es no usar ECB para datos
 estructurados; un modo autenticado como AES-GCM evita tanto esta filtración de
 patrones como la falta de integridad.
 
+## Reto 9: padding PKCS#7
+
+Los cifrados por bloques, como AES, procesan cantidades exactas de un bloque:
+AES usa bloques de 16 bytes. Si el mensaje no ocupa un número múltiplo del
+tamaño de bloque, no puede cifrarse directamente en modos como ECB o CBC. El
+*padding* rellena el final del mensaje para alcanzar ese múltiplo.
+
+PKCS#7 usa como relleno el número de bytes que se añaden, repetido una vez por
+cada byte de padding. Para un mensaje de longitud `n` y bloques de tamaño `B`:
+
+```text
+p = B - (n mod B)
+```
+
+Se añaden `p` bytes, todos con el valor `p`. Por ejemplo, para el texto de 16
+bytes `YELLOW SUBMARINE` y un bloque de 20 bytes, se añaden cuatro bytes:
+
+```text
+YELLOW SUBMARINE 04 04 04 04
+```
+
+Si faltan tres bytes para completar un bloque de cuatro, se añaden
+`03 03 03`. Un caso importante es el de un mensaje que ya ocupa un bloque
+completo: PKCS#7 añade un bloque entero. Con 16 bytes y bloques de 16, el
+resultado termina en dieciséis bytes `10`. Esto permite diferenciar un último
+byte de datos con valor `01`, por ejemplo, de un byte de padding.
+
+`pkcs7_needed_pad()` calcula `p` y `pkcs7_pad()` escribe esos bytes al final
+del buffer. La función requiere que el llamador proporcione capacidad suficiente
+para el mensaje y el padding; devuelve el número de bytes añadidos o `-1` ante
+un error.
+
+Al descifrar, `pkcs7_unpad()` toma el último byte como longitud candidata del
+relleno. Lo acepta solo si es distinto de cero, no supera el tamaño de bloque
+ni la longitud disponible, y todos los últimos `p` bytes tienen exactamente el
+mismo valor. Si es válido, devuelve la longitud sin padding; si no, devuelve
+`-1`. Así rechaza, por ejemplo, los finales `05 05 05 05` cuando el último byte
+indica cinco bytes, o `01 02 03 04`, cuyos valores no coinciden.
+
+El padding solo ajusta la longitud; no autentica el mensaje ni protege su
+integridad. Además, exponer de forma distinguible un error de padding puede
+crear un oráculo de padding, como el que se explota en el reto 17.
+
 ## Reto 17: ataque de oráculo de padding en CBC
 
 `challenge17.c` simula un servicio que cifra uno de diez mensajes codificados
