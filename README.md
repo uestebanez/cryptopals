@@ -233,6 +233,55 @@ El padding solo ajusta la longitud; no autentica el mensaje ni protege su
 integridad. Además, exponer de forma distinguible un error de padding puede
 crear un oráculo de padding, como el que se explota en el reto 17.
 
+## Reto 10: implementar CBC a partir de ECB
+
+El reto 10 descifra un archivo Base64 cifrado con AES-128-CBC. El programa
+concatena y decodifica las líneas de entrada, usa la clave conocida `YELLOW
+SUBMARINE` y un IV de ceros —valores fijados por el ejercicio— y recupera el
+texto bloque a bloque.
+
+ECB cifra cada bloque de forma independiente:
+
+```text
+Cᵢ = Eₖ(Pᵢ)
+```
+
+Por eso filtra patrones: dos bloques iguales de texto plano generan el mismo
+bloque cifrado. CBC (*Cipher Block Chaining*) evita esa independencia mezclando
+cada bloque con el bloque cifrado anterior antes de cifrarlo:
+
+```text
+C₀ = Eₖ(P₀ XOR IV)
+Cᵢ = Eₖ(Pᵢ XOR Cᵢ₋₁)    para i > 0
+```
+
+Aunque `Pᵢ` y `Pⱼ` sean iguales, normalmente sus bloques anteriores son
+distintos, por lo que sus entradas a AES y sus bloques cifrados también lo son.
+El IV cumple ese papel para el primer bloque. Debe ser impredecible y nuevo
+para cada cifrado con una misma clave; no necesita ser secreto y se transmite
+junto al criptograma. Un IV fijo de ceros, como el usado por el reto, es útil
+para reproducir el ejemplo, pero no es seguro en una aplicación real.
+
+Para descifrar CBC se aplica primero la inversa de AES al bloque actual y luego
+XOR con el bloque cifrado anterior:
+
+```text
+P₀ = Dₖ(C₀) XOR IV
+Pᵢ = Dₖ(Cᵢ) XOR Cᵢ₋₁    para i > 0
+```
+
+Esto es exactamente lo que hace la `aes128_cbc_decrypt()` local de
+`challenge10.c`. Inicializa OpenSSL en ECB para obtener `Dₖ(Cᵢ)` de cada bloque
+de 16 bytes y `buffer_xor()` mezcla después el IV en el primer bloque o el
+bloque cifrado anterior en los siguientes. Así demuestra que CBC puede
+construirse a partir de una primitiva ECB y XOR.
+
+CBC oculta los patrones que ECB deja visibles, pero no aporta autenticación:
+un atacante puede modificar bloques cifrados y provocar cambios previsibles
+en el siguiente bloque de texto plano. Actualmente debe preferirse un modo
+autenticado, como AES-GCM o ChaCha20-Poly1305, que proporciona confidencialidad
+e integridad.
+
 ## Reto 17: ataque de oráculo de padding en CBC
 
 `challenge17.c` simula un servicio que cifra uno de diez mensajes codificados
