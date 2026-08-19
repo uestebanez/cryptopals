@@ -3,6 +3,45 @@
 Este documento recoge las ideas principales que vamos descubriendo al resolver
 los retos de Cryptopals.
 
+## Reto 4: detectar texto cifrado con XOR de un byte
+
+El fichero de entrada contiene una línea cifrada con XOR de un byte entre muchas
+líneas hexadecimales que no lo están. `challenge4.c` abre el fichero indicado
+en la línea de comandos, lee una línea cada vez y elimina el salto de línea.
+Cada línea representa bytes en hexadecimal: dos caracteres por cada byte.
+
+En un cifrado XOR de un byte, una única clave `k` se repite para todos los
+bytes:
+
+```text
+C[i] = P[i] XOR k
+```
+
+XOR es su propia inversa, por lo que se descifra con la misma operación:
+
+```text
+P[i] = C[i] XOR k
+```
+
+`fixed_xor_try()` aprovecha que la clave solo puede tener 256 valores. Para
+cada valor entre `0x00` y `0xFF`, `generate_key()` crea su repetición con la
+misma longitud que la línea y `fixed_xor()` aplica XOR byte a byte. Así obtiene
+256 textos candidatos para cada línea, sin necesidad de conocer la clave.
+
+Después, `score_hex_ascii_text()` valora cada candidato. La función suma más
+puntos para espacios y letras frecuentes en inglés, como `t`, `e`, `a`, `i` u
+`o`; los caracteres que no son letras ni espacios no aportan puntos. Se guarda
+la clave y el texto de mayor puntuación de esa línea. `challenge4.c` compara
+ese mejor resultado con el de las líneas anteriores y conserva el máximo
+global en `candidate_line`.
+
+Finalmente, `print_hex_as_ascii()` convierte de hexadecimal a texto el
+candidato ganador. La puntuación es una heurística, no una prueba
+criptográfica: puede fallar con textos cortos, idiomas distintos o contenido
+que incluya muchos dígitos y signos de puntuación. Para este reto funciona
+porque el texto oculto es inglés normal y destaca frente a resultados
+aleatorios.
+
 ## Reto 17: ataque de oráculo de padding en CBC
 
 `challenge17.c` simula un servicio que cifra uno de diez mensajes codificados
