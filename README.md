@@ -87,11 +87,51 @@ cada longitud divide el criptograma en bloques de ese tamaño y mide cuántos
 bits son distintos entre bloques consecutivos. Esa es la distancia de Hamming,
 que `hamming_distance()` calcula recorriendo los ocho bits de cada byte.
 
+La distancia de Hamming es simplemente el número de posiciones de bits que
+difieren entre dos datos de la misma longitud. Por ejemplo:
+
+```text
+A       = 01001001
+B       = 01001111
+A XOR B = 00000110
+```
+
+El resultado de XOR tiene dos bits a `1`, así que la distancia entre `A` y `B`
+es 2. XOR deja un bit a `1` exactamente cuando los dos bits de entrada son
+distintos; por eso contar sus bits a `1` produce la distancia.
+
 La distancia se normaliza dividiéndola por la longitud del bloque y se promedia
-para poder comparar claves de tamaños distintos. La intuición es que, con la
-longitud correcta, los bloques están alineados con el mismo período de clave y
-sus distancias se parecen a las de texto natural. La longitud con la menor
-distancia media se toma como candidata.
+para poder comparar claves de tamaños distintos. Funciona como estimador porque
+la longitud correcta alinea los bloques con el período de la clave. Si la clave
+mide `k` bytes, para dos posiciones separadas por `k` se cumple:
+
+```text
+C[i]     = P[i]     XOR K[i mod k]
+C[i + k] = P[i + k] XOR K[i mod k]
+
+C[i] XOR C[i + k] = P[i] XOR P[i + k]
+```
+
+Los dos bytes de clave se cancelan al aplicar XOR. Por eso, la distancia de
+Hamming entre bloques cifrados de tamaño `k` coincide con la distancia entre
+los fragmentos correspondientes de texto plano. El texto natural no es
+aleatorio —contiene letras, espacios y patrones—, de modo que sus fragmentos
+suelen diferir en menos bits que secuencias de bytes aleatorios.
+
+Con una longitud candidata incorrecta, los bloques no se alinean con la clave:
+
+```text
+C[i] XOR C[i + n] = P[i] XOR P[i + n] XOR K[a] XOR K[b]
+```
+
+Normalmente `a` y `b` son distintos. La diferencia adicional entre ambos bytes
+de clave introduce ruido y eleva la distancia media. Por ello, una longitud
+con distancia normalizada baja es una buena candidata.
+
+No es una garantía: con poco texto las medias pueden ser engañosas y un
+múltiplo de la longitud real también puede alinear la clave y puntuar bien.
+Conviene conservar varios tamaños candidatos y probar el descifrado completo
+con todos ellos, en lugar de fiarse de un único mínimo.
 
 Una vez estimado `best_keysiz`, el programa transpone el criptograma. La
 columna `c` contiene los bytes de índices `c`, `c + best_keysiz`,
@@ -104,13 +144,11 @@ texto inglés. El byte ganador se guarda en `key[c]`. Finalmente, el bucle
 `plain[i] = bin[i] ^ key[i % best_keysiz]` aplica la clave reconstruida al
 criptograma completo y recupera el texto.
 
-La distancia de Hamming solo es una heurística: normalmente conviene conservar
-varios tamaños de clave con mejores puntuaciones y resolverlos todos, en lugar
-de fiarse de un único mínimo. Además, hay un límite que corregir en la versión
-actual de `best_keysize()`: cuenta `blocks` bloques completos, pero compara
-cada uno con el siguiente, incluido el último. Ese último acceso puede leer más
-allá de `bin`; debe comparar solo `blocks - 1` pares y dividir la media entre
-el número de pares realmente comparados.
+Además, hay un límite que corregir en la versión actual de `best_keysize()`:
+cuenta `blocks` bloques completos, pero compara cada uno con el siguiente,
+incluido el último. Ese último acceso puede leer más allá de `bin`; debe
+comparar solo `blocks - 1` pares y dividir la media entre el número de pares
+realmente comparados.
 
 ## Reto 17: ataque de oráculo de padding en CBC
 
