@@ -468,6 +468,120 @@ aunque el ataque concreto de copiar bloques no funciona igual por el
 encadenamiento. La defensa moderna es un modo autenticado, como AES-GCM o
 ChaCha20-Poly1305, que detecta cualquier modificación del criptograma.
 
+## Reto 16: modificar datos con CBC bit flipping
+
+Este reto representa un servicio que guarda comentarios de usuario en una
+cookie cifrada. El cliente puede enviar `userdata`, pero el servidor añade por
+delante y por detrás texto fijo antes de cifrarlo:
+
+```text
+comment1=cooking%20MCs;userdata=<datos del usuario>;comment2=%20like%20a%20pound%20of%20bacon
+```
+
+Cuando recibe la cookie, `is_admin()` la descifra y busca la cadena
+`;admin=true;`. Si la encuentra, considera administrador al usuario. El
+atacante quiere introducir esa cadena en el texto descifrado, pero no conoce la
+clave AES.
+
+No pretende sustituir el campo `userdata` ni existe un campo `role` en este
+reto. El objetivo es que `;admin=true;` aparezca *dentro del valor* de
+`userdata`, de modo que el texto final tenga una forma parecida a:
+
+```text
+...;userdata=;admin=true;;comment2=...
+```
+
+La comprobación es vulnerable porque busca esa subcadena en cualquier posición
+del mensaje, sin validar que forme parte de un campo permitido ni comprobar la
+estructura completa del comentario.
+
+El servidor intenta impedir una inyección directa. `encrypt_userdata()` recorre
+los datos recibidos y sustituye `;` por `?` y `=` por `_`. Por tanto, si el
+atacante envía:
+
+```text
+;admin=true;
+```
+
+el texto que realmente se cifra contiene:
+
+```text
+?admin_true?
+```
+
+El intento normal falla porque esa cadena no contiene `;admin=true;`.
+
+Para entender el ataque hay que partir de la regla de descifrado de CBC. Para
+cualquier bloque salvo el primero:
+
+```text
+Pᵢ = Dₖ(Cᵢ) XOR Cᵢ₋₁
+```
+
+`Dₖ(Cᵢ)` es la salida de AES al descifrar el bloque actual y el bloque cifrado
+anterior se aplica después con XOR. Aunque un atacante no puede calcular
+`Dₖ(Cᵢ)`, sí puede modificar `Cᵢ₋₁`. Si cambia un bit de `Cᵢ₋₁`, cambia ese
+mismo bit de `Pᵢ` después del XOR. En general, si quiere transformar un byte
+conocido `original` en `deseado`, aplica al byte correspondiente del bloque
+cifrado anterior:
+
+```text
+delta = original XOR deseado
+Cᵢ₋₁' = Cᵢ₋₁ XOR delta
+
+Pᵢ' = Dₖ(Cᵢ) XOR Cᵢ₋₁'
+     = Pᵢ XOR delta
+     = original XOR original XOR deseado
+     = deseado
+```
+
+El prefijo fijo mide exactamente 32 bytes, es decir, dos bloques AES. Por ello
+`?admin_true?` comienza al inicio del tercer bloque de texto plano, `P₂`:
+
+```text
+P₀ | P₁ | P₂
+---+----+----------------
+prefijo de 32 bytes | ?admin_true?...
+```
+
+Para modificar `P₂`, hay que alterar el bloque cifrado anterior, `C₁`. En el
+array `cipher`, `C₁` empieza en el desplazamiento 16. El código realiza tres
+cambios concretos:
+
+```c
+cipher[16]    ^= ';' ^ '?';  // byte 0:  ? -> ;
+cipher[16 + 6] ^= '=' ^ '_';  // byte 6:  _ -> =
+cipher[16 + 11] ^= ';' ^ '?'; // byte 11: ? -> ;
+```
+
+Los valores a la derecha de `^=` son exactamente `original XOR deseado`. Tras
+el descifrado, el tercer bloque pasa de contener `?admin_true?` a contener
+`;admin=true;`, aunque el servidor nunca cifró esos caracteres directamente.
+
+Modificar `C₁` también destruye de forma impredecible el texto plano de su
+propio bloque, `P₁`: AES recibe un bloque cifrado distinto y su salida cambia
+por completo. Por tanto, el mensaje atacado tiene conceptualmente esta forma:
+
+```text
+P₀: texto normal
+P₁: basura provocada por modificar C₁
+P₂: ;admin=true;                 <- cambio controlado
+P₃...: resto del comentario
+```
+
+El ataque funciona porque `is_admin()` solo busca la subcadena de
+administrador en cualquier parte del texto y no valida la estructura completa
+del comentario. En un servidor que exigiera que todos los campos fueran
+correctos, la basura de `P₁` podría hacer fallar la petición y este ataque
+concreto quizá no serviría. El padding final tampoco se toca, por lo que sigue
+siendo válido.
+
+El ataque no descifra ni rompe AES; explota que CBC sin autenticación es
+maleable. Cifrar no basta para proteger datos que el cliente puede modificar:
+el servidor debe verificar una autenticación antes de interpretar el contenido.
+Un modo AEAD, como AES-GCM o ChaCha20-Poly1305, detectaría la modificación y
+rechazaría la cookie.
+
 ## Reto 17: ataque de oráculo de padding en CBC
 
 `challenge17.c` simula un servicio que cifra uno de diez mensajes codificados
