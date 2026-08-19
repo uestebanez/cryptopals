@@ -382,6 +382,92 @@ trataría explícitamente el padding, para no confundir el final del secreto con
 un byte de padding recuperable. En sistemas reales debe evitarse ECB y usarse
 cifrado autenticado con nonces o IVs adecuados.
 
+## Reto 13: ataque ECB cut-and-paste
+
+El reto modela una aplicación que guarda en una cookie cifrada el perfil de
+cada usuario. El servidor descifra la cookie y confía en el campo `role` para
+decidir sus privilegios. Un usuario normal recibe `role=user`; el objetivo del
+atacante es fabricar una cookie que el servidor interprete como `role=admin`,
+sin conocer la clave AES ni poder pedir ese rol directamente.
+
+Hay dos operaciones que, en una aplicación real, pertenecerían al servidor:
+
+1. `profile_for(email)` recibe el correo enviado por el cliente y crea el
+   texto de perfil.
+2. `encrypt_profile(profile)` aplica padding y devuelve el perfil cifrado que
+   el servidor entregaría al navegador como cookie.
+
+`main()` llama ambas funciones directamente porque es una demostración local.
+No significa que el atacante pueda invocar funciones internas del servidor:
+el supuesto del reto es que puede usar repetidamente el endpoint normal de
+registro o actualización de perfil, elegir el valor de su correo y recibir la
+cookie cifrada resultante. No puede solicitar que el servidor asigne
+`role=admin`; todos los perfiles que el servidor genera tienen inicialmente
+`role=user`.
+
+El texto que el servidor forma tiene este formato:
+
+```text
+email=<correo>&uid=10&role=user
+```
+
+El *filtrado de caracteres* es una validación de la entrada. `profile_for()`
+busca `&` y `=` dentro del correo y rechaza la petición si encuentra alguno.
+Esos caracteres tienen significado en este formato: `&` separa campos y `=`
+asigna un valor. Sin ese filtro, un atacante podría enviar literalmente:
+
+```text
+alice@example.com&role=admin
+```
+
+y conseguir que el texto del perfil incorporase otro campo `role`. Con el
+filtro, esa inyección directa falla; el atacante solo puede elegir correos sin
+`&` ni `=`. Por ejemplo, el servidor acepta `AAAAAAAAAAAAA` y devuelve el
+perfil cifrado correspondiente. Después `encrypt_profile()` aplica PKCS#7 y
+cifra el perfil con AES-ECB bajo una clave aleatoria fija que el atacante no
+conoce.
+
+El filtrado de caracteres no basta porque ECB cifra cada bloque de 16 bytes de
+forma independiente y determinista. Si se conoce el contenido y la alineación
+de un bloque, su cifrado puede copiarse a otra posición sin descifrarlo:
+
+```text
+Eₖ(P) = C  =>  insertar C en otro criptograma produce P al descifrar
+```
+
+Primero el programa solicita el perfil del correo con trece `A`:
+
+```text
+email=AAAAAAAAAAAAA&uid=10&role=user
+|------ bloque 0 ------|------ bloque 1 ------| bloque 2
+```
+
+`email=` ocupa 6 bytes; con 13 `A` y los 13 bytes de `&uid=10&role=` se llega
+exactamente a 32 bytes. Por tanto, `user` y su padding ocupan el último bloque.
+Ese es el bloque que se quiere reemplazar.
+
+Después construye otro correo con diez `A`, seguido de `admin` y once bytes
+`0x0b`. El prefijo `email=` más las diez `A` llenan el primer bloque; el segundo
+queda exactamente así:
+
+```text
+admin 0b 0b 0b 0b 0b 0b 0b 0b 0b 0b 0b
+```
+
+Es un bloque PKCS#7 válido: `admin` tiene 5 bytes y los 11 bytes restantes
+valen `0x0b`. El programa copia el segundo bloque cifrado de este perfil al
+último bloque cifrado del primer perfil. Al descifrar el criptograma mezclado,
+los dos primeros bloques siguen formando `email=...&uid=10&role=` y el último
+se convierte en `admin` con padding válido. Tras eliminar el padding, el perfil
+resultante indica `role=admin`.
+
+El ataque no rompe AES: reutiliza bloques válidos producidos por el propio
+servicio. Requiere una clave ECB fija, la capacidad de elegir parte del texto
+plano y ausencia de autenticación. CBC sin autenticación también es maleable,
+aunque el ataque concreto de copiar bloques no funciona igual por el
+encadenamiento. La defensa moderna es un modo autenticado, como AES-GCM o
+ChaCha20-Poly1305, que detecta cualquier modificación del criptograma.
+
 ## Reto 17: ataque de oráculo de padding en CBC
 
 `challenge17.c` simula un servicio que cifra uno de diez mensajes codificados
