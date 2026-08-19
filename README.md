@@ -75,6 +75,43 @@ cifra con el mismo byte de clave, lo que deja patrones estadísticos. Si se
 estima la longitud de la clave, el criptograma puede dividirse en columnas y
 atacar cada una como un XOR de un byte, que es la idea del reto 6.
 
+## Reto 6: romper XOR de clave repetida
+
+`challenge6.c` recibe un criptograma codificado en Base64. Primero concatena
+sus líneas, lo decodifica con `base642bin()` y trabaja desde entonces con bytes
+binarios. El objetivo es recuperar tanto la longitud de la clave repetida como
+sus bytes.
+
+El primer paso, `best_keysize()`, prueba longitudes de clave entre 2 y 39. Para
+cada longitud divide el criptograma en bloques de ese tamaño y mide cuántos
+bits son distintos entre bloques consecutivos. Esa es la distancia de Hamming,
+que `hamming_distance()` calcula recorriendo los ocho bits de cada byte.
+
+La distancia se normaliza dividiéndola por la longitud del bloque y se promedia
+para poder comparar claves de tamaños distintos. La intuición es que, con la
+longitud correcta, los bloques están alineados con el mismo período de clave y
+sus distancias se parecen a las de texto natural. La longitud con la menor
+distancia media se toma como candidata.
+
+Una vez estimado `best_keysiz`, el programa transpone el criptograma. La
+columna `c` contiene los bytes de índices `c`, `c + best_keysiz`,
+`c + 2 * best_keysiz`, etc. Todos ellos fueron cifrados con el mismo byte de
+clave, por lo que cada columna equivale a un problema del reto 4.
+
+`fixed_xor_bin_try()` prueba los 256 valores para ese byte, aplica XOR a la
+columna y usa `score_bytes()` para elegir el resultado que más se parece a
+texto inglés. El byte ganador se guarda en `key[c]`. Finalmente, el bucle
+`plain[i] = bin[i] ^ key[i % best_keysiz]` aplica la clave reconstruida al
+criptograma completo y recupera el texto.
+
+La distancia de Hamming solo es una heurística: normalmente conviene conservar
+varios tamaños de clave con mejores puntuaciones y resolverlos todos, en lugar
+de fiarse de un único mínimo. Además, hay un límite que corregir en la versión
+actual de `best_keysize()`: cuenta `blocks` bloques completos, pero compara
+cada uno con el siguiente, incluido el último. Ese último acceso puede leer más
+allá de `bin`; debe comparar solo `blocks - 1` pares y dividir la media entre
+el número de pares realmente comparados.
+
 ## Reto 17: ataque de oráculo de padding en CBC
 
 `challenge17.c` simula un servicio que cifra uno de diez mensajes codificados
