@@ -282,6 +282,65 @@ en el siguiente bloque de texto plano. Actualmente debe preferirse un modo
 autenticado, como AES-GCM o ChaCha20-Poly1305, que proporciona confidencialidad
 e integridad.
 
+## Reto 12: descifrar un sufijo secreto byte a byte en ECB
+
+`challenge12.c` construye un oráculo de cifrado. Al iniciarse genera una clave
+AES aleatoria que se mantiene fija, y `encryption_oracle()` cifra lo siguiente
+en ECB:
+
+```text
+entrada_controlada || sufijo_secreto || padding_PKCS#7
+```
+
+El sufijo está codificado en Base64 en `g_unknown_string`, pero Base64 solo es
+una codificación: el oráculo lo decodifica antes de cifrarlo. El atacante no
+conoce ni la clave ni el sufijo, pero puede enviar tantas entradas controladas
+como quiera y observar el texto cifrado resultante.
+
+Antes del ataque, `detect_blk_size()` llama al oráculo con entradas de `A` cada
+vez más largas. Cuando la longitud cifrada aumenta, ha empezado un nuevo
+bloque; la diferencia de longitudes revela el tamaño de bloque, 16 bytes para
+AES. `detect_ecb()` envía varios bloques idénticos de `A` y busca bloques
+cifrados repetidos. La repetición confirma que el oráculo usa ECB, condición
+necesaria para el ataque.
+
+Para recuperar el byte secreto de índice `n`, el programa calcula:
+
+```text
+bloque_objetivo = n / 16
+prefijo = 15 - (n mod 16)
+```
+
+Al enviar solo `prefijo` bytes `A`, el byte secreto `S[n]` queda como último
+byte del bloque objetivo. El programa guarda el bloque cifrado correspondiente
+como referencia.
+
+Después crea un diccionario de 256 posibilidades. Para cada byte candidato
+`g`, envía:
+
+```text
+A...A || S[0] || S[1] || ... || S[n-1] || g
+```
+
+Los bytes `S[0..n-1]` ya se recuperaron en iteraciones anteriores. Si `g` es
+igual a `S[n]`, el bloque de texto plano construido por el atacante es idéntico
+al bloque objetivo de la consulta de referencia. Como ECB cifra bloques iguales
+con la misma clave en el mismo resultado, los bloques cifrados coinciden. La
+comparación con `memcmp()` identifica el candidato correcto y el proceso se
+repite para el siguiente byte.
+
+La debilidad no consiste en que la clave sea corta o predecible: incluso una
+clave AES aleatoria es insuficiente si un atacante puede consultar un oráculo
+ECB determinista que concatena un secreto. El ataque requiere que la clave se
+mantenga fija, que el atacante controle el prefijo y que no haya un prefijo
+aleatorio desconocido; el caso con ese prefijo se trata en el reto 14.
+
+El bucle actual termina cuando ningún candidato produce coincidencia. Una
+implementación más robusta calcularía primero la longitud exacta del sufijo y
+trataría explícitamente el padding, para no confundir el final del secreto con
+un byte de padding recuperable. En sistemas reales debe evitarse ECB y usarse
+cifrado autenticado con nonces o IVs adecuados.
+
 ## Reto 17: ataque de oráculo de padding en CBC
 
 `challenge17.c` simula un servicio que cifra uno de diez mensajes codificados
