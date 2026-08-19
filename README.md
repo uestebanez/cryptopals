@@ -690,3 +690,73 @@ de búsqueda queda reducido a unas pocas centenas de candidatas.
 
 Para reproducir el ataque no es necesario esperar físicamente: se puede
 simular un instante posterior al de creación y buscar hacia atrás desde él.
+
+## Anexo: XOR como máscara de cambios
+
+XOR es una operación entre bits. La forma más útil de entenderla en este
+contexto es como una máscara de cambios: un `0` conserva un bit y un `1` lo
+invierte.
+
+| Bit original | Máscara XOR | Bit resultante |
+| --- | --- | --- |
+| 0 | 0 | 0 |
+| 0 | 1 | 1 |
+| 1 | 0 | 1 |
+| 1 | 1 | 0 |
+
+Podemos imaginar `delta` como una lista de instrucciones para los bits del
+byte: cada `0` significa «deja este bit como está» y cada `1` significa
+«invierte este bit». Es decir, `delta` contiene exactamente los cambios que se
+necesitan para transformar `original` en `deseado`. Para obtener esa lista de
+instrucciones se calcula qué bits son diferentes:
+
+```text
+delta = original XOR deseado
+```
+
+Al aplicar esa lista de cambios sobre el valor original se obtiene el valor
+deseado:
+
+```text
+original XOR delta
+= original XOR (original XOR deseado)
+= (original XOR original) XOR deseado
+= 0 XOR deseado
+= deseado
+```
+
+Esto funciona porque todo valor aplicado dos veces con XOR se cancela:
+
+```text
+x XOR x = 0
+x XOR 0 = x
+```
+
+Por ejemplo, para transformar el carácter `?` en `;`:
+
+```text
+?        = 0x3f = 00111111
+;        = 0x3b = 00111011
+delta    = 0x04 = 00000100
+```
+
+La máscara `0x04` tiene un `1` solo en el tercer bit empezando por la derecha,
+porque ese es el único bit que difiere. Si aplicamos la máscara:
+
+```text
+00111111 XOR 00000100 = 00111011
+     ?          delta         ;
+```
+
+En código, el patrón general es:
+
+```c
+delta = original ^ deseado;
+modificado = original ^ delta;
+```
+
+El nombre *bit flipping* se usa porque la máscara puede invertir uno o varios
+bits. Por ejemplo, convertir `_` (`0x5f`) en `=` (`0x3d`) requiere la máscara
+`0x62`, que invierte varios bits. Lo importante no es memorizar los valores:
+si conocemos el valor inicial y el que queremos al final, su XOR siempre
+construye la lista de cambios correcta.
