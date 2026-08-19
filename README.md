@@ -329,6 +329,29 @@ con la misma clave en el mismo resultado, los bloques cifrados coinciden. La
 comparación con `memcmp()` identifica el candidato correcto y el proceso se
 repite para el siguiente byte.
 
+Un ejemplo con bloques imaginarios de cuatro bytes aclara la comparación.
+Supongamos que el secreto empieza por `DOG...` y queremos obtener el primer
+byte. Primero enviamos tres `A`:
+
+```text
+entrada del atacante:                 AAA
+texto que cifra el oráculo:           AAADOG...
+primer bloque de referencia:          AAAD
+```
+
+El atacante guarda ese bloque cifrado de referencia; aquí lo llamamos cifrado
+de `AAAD` porque conocemos el ejemplo, pero el atacante aún no conoce `D` ni
+la clave. Luego prueba `AAAX` para cada posible byte `X`; el primer bloque
+cifrado solo coincidirá con el de referencia cuando `X` sea `D`, porque
+entonces ambos bloques de texto plano son `AAAD`.
+
+Para recuperar el segundo byte, el atacante ya conoce `D`. Envía dos `A`, con
+lo que el bloque de referencia pasa a ser `AADO`, y compara su cifrado con los
+de `AADA`, `AADB`, `AADC`, etc. La coincidencia se produce con `AADO`, por lo
+que el segundo byte es `O`. El mismo desplazamiento y la misma búsqueda se
+repiten para el resto del sufijo; al cruzar un límite de bloque se compara el
+siguiente bloque cifrado.
+
 La debilidad no consiste en que la clave sea corta o predecible: incluso una
 clave AES aleatoria es insuficiente si un atacante puede consultar un oráculo
 ECB determinista que concatena un secreto. El ataque requiere que la clave se
