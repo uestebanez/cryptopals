@@ -150,6 +150,46 @@ incluido el último. Ese último acceso puede leer más allá de `bin`; debe
 comparar solo `blocks - 1` pares y dividir la media entre el número de pares
 realmente comparados.
 
+## Reto 8: detectar AES en modo ECB
+
+El reto recibe un fichero con varios criptogramas, uno por línea y codificados
+en hexadecimal. `challenge8.c` convierte cada línea a bytes con `str2bytes()`
+y la divide conceptualmente en bloques de 16 bytes, que es el tamaño de bloque
+de AES.
+
+ECB cifra cada bloque de manera independiente y determinista con la misma
+clave:
+
+```text
+Cᵢ = AESₖ(Pᵢ)
+```
+
+Por ello, dos bloques de texto plano idénticos producen dos bloques cifrados
+idénticos:
+
+```text
+Pᵢ = Pⱼ  =>  AESₖ(Pᵢ) = AESₖ(Pⱼ)  =>  Cᵢ = Cⱼ
+```
+
+Esta propiedad filtra patrones del mensaje. Por ejemplo, una imagen con zonas
+uniformes o un texto con muchas repeticiones seguirá mostrando bloques iguales
+después de cifrarse en ECB. En modos encadenados, como CBC con un IV adecuado,
+los bloques iguales no tienen por qué producir el mismo resultado.
+
+`aes128_check_repeated_blocks()` compara todos los pares distintos de bloques
+de una línea mediante `memcmp()`. Incrementa la puntuación por cada pareja
+idéntica; si un valor aparece tres veces, aporta tres parejas coincidentes. El
+programa muestra las líneas cuya puntuación es mayor que cero, que son las
+candidatas a haber sido cifradas en ECB.
+
+La repetición no demuestra por sí sola que se haya usado ECB: puede existir una
+colisión accidental, aunque entre bloques AES de 128 bits es extremadamente
+improbable, o el dato puede contener bloques repetidos sin ser un criptograma
+ECB. En este reto los datos están construidos para que la línea ECB contenga
+repeticiones claras. La lección práctica es no usar ECB para datos
+estructurados; un modo autenticado como AES-GCM evita tanto esta filtración de
+patrones como la falta de integridad.
+
 ## Reto 17: ataque de oráculo de padding en CBC
 
 `challenge17.c` simula un servicio que cifra uno de diez mensajes codificados
