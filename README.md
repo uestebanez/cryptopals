@@ -352,6 +352,24 @@ que el segundo byte es `O`. El mismo desplazamiento y la misma búsqueda se
 repiten para el resto del sufijo; al cruzar un límite de bloque se compara el
 siguiente bloque cifrado.
 
+Visto como una secuencia, para cada byte nuevo se quita una `A` del prefijo.
+Así se mantiene el siguiente byte secreto justo al final del bloque de
+referencia:
+
+```text
+Descubrir D:  AAA + DOG...  -> bloque AAAD
+Descubrir O:  AA  + DOG...  -> bloque AADO   (D ya se conoce)
+Descubrir G:  A   + DOG...  -> bloque ADOG   (D y O ya se conocen)
+```
+
+En las 256 pruebas de una misma ronda el prefijo no cambia. En esas pruebas se
+añade al prefijo la parte del secreto ya descubierta y únicamente se varía el
+último byte. Por ejemplo, al buscar `O` se mantiene `AA` y el `D` recuperado:
+`AADA`, `AADB`, `AADC`, ..., `AADO`. La coincidencia de `AADO` revela `O`.
+Entonces se pasa a la siguiente ronda, se elimina otra `A` y se incorpora `O`
+a los bytes ya conocidos: para buscar `G` se probarán `ADOA`, `ADOB`, ...,
+`ADOG`.
+
 La debilidad no consiste en que la clave sea corta o predecible: incluso una
 clave AES aleatoria es insuficiente si un atacante puede consultar un oráculo
 ECB determinista que concatena un secreto. El ataque requiere que la clave se
