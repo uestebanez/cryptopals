@@ -636,6 +636,22 @@ De ahí obtiene el byte intermedio:
 Iᵢ[15] = M[15] XOR 01
 ```
 
+La operación se entiende como deshacer una máscara XOR. El oráculo ha
+confirmado que `Iᵢ[15] XOR M[15]` vale `01`; el atacante conoce el valor de
+`M[15]` porque lo eligió. Si aplica esa misma máscara una segunda vez a ambos
+lados de la igualdad, se cancela:
+
+```text
+(Iᵢ[15] XOR M[15]) XOR M[15] = 01 XOR M[15]
+Iᵢ[15] XOR (M[15] XOR M[15]) = 01 XOR M[15]
+Iᵢ[15] = 01 XOR M[15]
+```
+
+Es como accionar dos veces el mismo interruptor: el segundo cambio deshace el
+primero. Por ejemplo, si la prueba con `M[15] = A7` hace que el oráculo acepte
+el padding `01`, entonces `Iᵢ[15] = 01 XOR A7 = A6`. Se puede comprobar que
+`A6 XOR A7 = 01`.
+
 Ya conoce `Iᵢ[15]`, aunque siga sin conocer la clave. Para recuperar el último
 byte real del mensaje, aplica XOR con el byte original del bloque anterior:
 
