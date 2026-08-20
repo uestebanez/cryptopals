@@ -38,7 +38,7 @@ void print_bytes_as_ascii(FILE* file,const uint8_t* bytes,
   if( prefix != NULL )
     fprintf(file,"%s",prefix);
   for(; len > 0; len--,bytes++) {
-    fprintf(file,"%c",isprint(*bytes) ? *bytes : '.');    
+    fprintf(file,"%c",isprint(*bytes) || isspace(*bytes) ? *bytes : '.');    
   }
   if( suffix )
     fprintf(file,"%s",suffix);
