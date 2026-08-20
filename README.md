@@ -679,6 +679,64 @@ resultado cumple una regla de padding. La defensa es autenticar el mensaje
 antes de interpretarlo, preferiblemente con AEAD como AES-GCM o
 ChaCha20-Poly1305, y no exponer errores de descifrado distinguibles.
 
+## Reto 19: romper CTR con nonce reutilizado
+
+El reto cifra cuarenta líneas de texto con AES en modo CTR. Cada línea usa la
+misma clave AES y, de forma intencionadamente insegura, el mismo nonce `0`.
+Las líneas se presentan codificadas en Base64, que se decodifica antes de
+cifrarlas; Base64 no aporta protección criptográfica.
+
+CTR convierte AES en un cifrador de flujo. Para cada posición genera bytes de
+*keystream* cifrando con AES un bloque formado por un nonce y un contador:
+
+```text
+keystream = AESₖ(nonce || contador)
+cifrado   = texto_plano XOR keystream
+```
+
+Para descifrar se aplica el mismo XOR:
+
+```text
+texto_plano = cifrado XOR keystream
+```
+
+El contador aumenta dentro de cada mensaje. La seguridad depende de que la
+pareja `(clave, nonce)` no se repita nunca: con la misma clave y el mismo
+nonce, el contador vuelve a empezar en cero y se genera exactamente el mismo
+keystream para todos los mensajes.
+
+Si `K[j]` es el byte de keystream de la posición `j`, para cada línea se
+cumple:
+
+```text
+C[i][j] = P[i][j] XOR K[j]
+```
+
+Es la misma situación que tener muchos mensajes cifrados con la misma clave
+XOR, alineada por posiciones. Cada columna de bytes cifrados —el byte cero de
+todas las líneas, después el byte uno, etc.— se ha combinado con el mismo
+`K[j]`. El reto puede atacar cada columna de forma independiente.
+
+Para una posición `j`, se prueban los 256 valores posibles de `K[j]`. Cada
+valor candidato se aplica a todos los criptogramas que tengan un byte en esa
+posición. Si el resultado contiene letras y espacios con frecuencias propias
+del inglés, recibe una puntuación alta; el candidato con mejor puntuación se
+guarda como el byte de keystream de esa columna. Al repetirlo hasta la longitud
+de la línea más larga se reconstruye un prefijo del keystream y se descifran
+todas las líneas con él.
+
+La estimación es estadística. Las columnas con muchas líneas aportan evidencia
+suficiente, pero al final de las líneas largas quedan pocas muestras y pueden
+aparecer letras erróneas, signos de puntuación mal recuperados o puntos en la
+salida. Con más texto, un mejor modelo de idioma o correcciones manuales se
+puede mejorar el resultado.
+
+Este fallo también se conoce como reutilización de *one-time pad* o
+*many-time pad*: XOR con el mismo keystream dos veces expone relaciones entre
+los textos. AES-CTR es seguro solo si cada mensaje usa un nonce único bajo una
+misma clave. En protocolos modernos conviene usar AEAD, como AES-GCM o
+ChaCha20-Poly1305, y gestionar los nonces de modo que nunca se repitan.
+
 ## Reto 23: clonar un MT19937 a partir de sus salidas
 
 MT19937 no es un generador criptográficamente seguro. Aunque su estado interno
