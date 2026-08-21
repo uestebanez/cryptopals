@@ -803,6 +803,67 @@ de búsqueda queda reducido a unas pocas centenas de candidatas.
 Para reproducir el ataque no es necesario esperar físicamente: se puede
 simular un instante posterior al de creación y buscar hacia atrás desde él.
 
+## Reto 25: romper un oráculo de edición aleatoria en CTR
+
+CTR permite acceder a una posición concreta de un criptograma sin procesar los
+bytes anteriores: basta con generar el byte de *keystream* de esa posición. Esa
+propiedad puede ser útil para editar datos cifrados, pero se vuelve peligrosa
+si una API expone la edición a un atacante y le devuelve el criptograma
+resultante.
+
+El escenario es el siguiente: el servidor cifra un texto con una clave y un
+nonce que el atacante no conoce. El atacante recibe el criptograma original y
+puede llamar a un oráculo de esta forma:
+
+```text
+edit(criptograma, offset, texto_nuevo) -> criptograma_editado
+```
+
+El oráculo sustituye `texto_nuevo` en el texto plano a partir de `offset` y
+vuelve a cifrar esa región con la misma clave, nonce y contador. No revela ni
+la clave ni el texto plano original.
+
+En CTR, para cada posición se cumple:
+
+```text
+C = P XOR K
+```
+
+donde `P` es el texto plano, `C` el criptograma y `K` el keystream. Para
+editar una región, el oráculo genera el mismo `K` en esa posición y calcula:
+
+```text
+C_editado = P_nuevo XOR K
+```
+
+La debilidad aparece porque el atacante puede elegir `P_nuevo`. Si sustituye
+todo el texto por bytes cero, la salida del oráculo es:
+
+```text
+C_editado = 00 XOR K = K
+```
+
+Es decir, el supuesto criptograma editado es directamente el keystream del
+mensaje. El atacante ya tenía el criptograma original, así que recupera el
+texto plano con un último XOR:
+
+```text
+P = C XOR K
+```
+
+En el programa, se crea un buffer de ceros de la misma longitud que el
+criptograma, se solicita al oráculo una edición desde el desplazamiento cero y
+se guarda la respuesta como `keystream`. Después `fixed_xor_bin()` combina ese
+keystream con el criptograma original y obtiene el texto plano completo.
+
+No hace falta reutilizar el nonce entre mensajes para que este ataque funcione:
+basta poder editar y obtener la salida del mismo mensaje. El problema es que
+el oráculo ofrece cifrado elegido con el keystream secreto y permite pedir el
+caso especial de texto plano cero. Una API de edición debe estar protegida por
+autorización y no debe entregar a un atacante un resultado que pueda usarse
+para reconstruir el keystream. Para datos sensibles conviene además usar un
+modo autenticado que detecte modificaciones no autorizadas.
+
 ## Anexo: XOR como máscara de cambios
 
 XOR es una operación entre bits. La forma más útil de entenderla en este
