@@ -55,6 +55,23 @@ int aes128_ctr_crypt(const uint8_t* input,
                      size_t output_capacity,
                      size_t* output_len);
 
+/**
+ * \brief Decrypt an AES-128 CTR ciphertext.
+ * \return 0 if success, -1 if error
+ * \remarks CTR encryption and decryption use the same XOR operation.
+ */
+static inline int aes128_ctr_decrypt(const uint8_t* ciphered,
+                                     size_t ciphered_len,
+                                     const uint8_t key[16],
+                                     uint64_t nonce,
+                                     uint8_t* plain,
+                                     size_t plain_capacity,
+                                     size_t* plain_len)
+{
+  return aes128_ctr_crypt(ciphered, ciphered_len, key, nonce, plain,
+                           plain_capacity, plain_len);
+}
+
 
 int aes128_check_repeated_blocks(const uint8_t* bytes,
                                  size_t len,

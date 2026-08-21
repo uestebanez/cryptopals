@@ -864,6 +864,71 @@ autorización y no debe entregar a un atacante un resultado que pueda usarse
 para reconstruir el keystream. Para datos sensibles conviene además usar un
 modo autenticado que detecte modificaciones no autorizadas.
 
+## Reto 26: CTR bit flipping
+
+El escenario es el mismo que en el reto 16: el servidor inserta datos de
+usuario dentro de un comentario y decide que el usuario es administrador si,
+tras descifrar, encuentra la cadena `;admin=true;`:
+
+```text
+comment1=cooking%20MCs;userdata=<datos del usuario>;comment2=...
+```
+
+Para evitar una inyección directa, el servidor sustituye los caracteres `;` y
+`=` recibidos del usuario por `?` y `_`. Por tanto, cuando el atacante envía
+`;admin=true;`, el texto que se cifra contiene el fragmento conocido:
+
+```text
+?admin_true?
+```
+
+En CTR no hay encadenamiento entre bloques. Cada byte se cifra de forma
+independiente con el byte correspondiente del keystream:
+
+```text
+C = P XOR K
+```
+
+Si el atacante modifica un byte del criptograma aplicándole una máscara
+`delta`, el servidor descifra:
+
+```text
+C' = C XOR delta
+P' = C' XOR K
+   = (C XOR delta) XOR K
+   = P XOR delta
+```
+
+Así que la misma máscara modifica de forma predecible el byte de texto plano
+en la misma posición. Para transformar un valor conocido `original` en otro
+`deseado`, se usa:
+
+```text
+delta = original XOR deseado
+```
+
+El prefijo fijo mide 32 bytes. Por eso el primer carácter de los datos de
+usuario está en `cipher[32]`. El ataque aplica las máscaras necesarias sobre
+los tres caracteres sanitizados:
+
+```text
+cipher[32] ^= '?' XOR ';';  // ? -> ;
+cipher[38] ^= '_' XOR '=';  // _ -> =
+cipher[43] ^= '?' XOR ';';  // ? -> ;
+```
+
+Después del descifrado, el fragmento pasa de `?admin_true?` a
+`;admin=true;`. El verificador encuentra esa subcadena y concede privilegios
+de administrador, aunque la clave y el keystream sigan siendo desconocidos
+para el atacante.
+
+La diferencia esencial con CBC es que CTR no daña ningún byte vecino: cambiar
+un byte de `C` cambia solo el byte equivalente de `P`. Esto hace el ataque más
+directo, pero no menos grave. CTR proporciona confidencialidad, no integridad;
+un atacante que pueda modificar el criptograma puede alterar el mensaje de
+forma controlada. La defensa es usar cifrado autenticado, como AES-GCM o
+ChaCha20-Poly1305, y rechazar cualquier mensaje cuya autenticación falle.
+
 ## Anexo: XOR como máscara de cambios
 
 XOR es una operación entre bits. La forma más útil de entenderla en este
