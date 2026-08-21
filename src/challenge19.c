@@ -119,8 +119,7 @@ int main(int argc,char** argv)
     printf("\n");
   }
 
-  print_bytes(stdout,key,key_len,"key:");
+  print_bytes(stdout,key,key_len,"key:",NULL);
 
   return 0;
 }
-

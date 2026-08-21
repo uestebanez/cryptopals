@@ -110,7 +110,7 @@ int main(int argc,char** argv)
     plain[i] = bin[i] ^ key[i % best_keysiz];
   }
   printf("Text:[%s]\n",plain);
-  print_bytes(stdout,key,best_keysiz,"key:");
+  print_bytes(stdout,key,best_keysiz,"key:",NULL);
   key[best_keysiz]='\0';
   printf("key is:[%s]\n",key);
  

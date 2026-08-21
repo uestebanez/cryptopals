@@ -169,7 +169,7 @@ static int challenge25_ctr_edit(void)
       ARRAY_SIZE(g_ciphered),&clen);
 #if 0  
   print_bytes(stdout,g_ciphered,ARRAY_SIZE(g_ciphered),
-      "text ciphered:");
+      "text ciphered:",NULL);
 #endif
 
   uint8_t* newtext = calloc(1,ARRAY_SIZE(g_ciphered));

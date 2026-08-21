@@ -31,7 +31,7 @@ int main(int argc,char** argv)
     line[strcspn(line, "\n")] = '\0';
     llen = strlen(line);
     size_t bytesno = str2bytes(line,&raw_bytes);
-    //print_bytes(stdout,raw_bytes,bytesno,"buf:");
+    //print_bytes(stdout,raw_bytes,bytesno,"buf:",NULL);
     //printf("bytesno=%zu llen=%zu\n",bytesno,llen);
     int score = aes128_check_repeated_blocks(raw_bytes,bytesno,16);
     if( score > 0 ) {

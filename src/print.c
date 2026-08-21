@@ -21,13 +21,16 @@ void print_hex_as_ascii(const char* hex)
   }
 }
 
-void print_bytes(FILE* file,const uint8_t* bytes,size_t len,const char* prefix)
+void print_bytes(FILE* file,const uint8_t* bytes,size_t len,const char* prefix,
+                 const char* suffix)
 {
   if( prefix != NULL )
     fprintf(file,"%s",prefix);
   for(; len > 0; len--) {
     fprintf(file,"%02"PRIX8,*bytes++);
   }
+  if( suffix != NULL )
+    fprintf(file,"%s",suffix);
   fprintf(file,"\n");
 }
 
@@ -45,5 +48,4 @@ void print_bytes_as_ascii(FILE* file,const uint8_t* bytes,
   fprintf(file,"\n");
 
 }
-
 

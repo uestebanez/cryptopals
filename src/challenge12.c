@@ -197,10 +197,9 @@ int main(int argc,char** argv)
       }
     }
   }
-  print_bytes(stdout,secret,secret_len,"secret:");
+  print_bytes(stdout,secret,secret_len,"secret:",NULL);
   secret[secret_len]=0;
   printf("secret:[%s]\n",secret);
   return 0;
 }
-
 

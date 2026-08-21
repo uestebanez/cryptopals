@@ -180,7 +180,7 @@ int main(int argc,char** argv)
     printf("Error calling oracle\n");
     return r;
   }
-  print_bytes(stdout,ciphered,clen,"Cipher text:");
+  print_bytes(stdout,ciphered,clen,"Cipher text:",NULL);
   printf("clen=%zu\n",clen);
   attack(iv,ciphered,clen,plain,sizeof(plain),&plen);
   printf("plen=%zu\n",plen);
@@ -192,4 +192,3 @@ int main(int argc,char** argv)
   }
   return 0;
 }
-

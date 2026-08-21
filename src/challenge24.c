@@ -163,7 +163,7 @@ static int challenge24_recover_16_bit_seed(void)
   printf("Mensaje a cifrar (%zu bytes): %s\n", plaintext_len,
          (const char *)plaintext);
   printf("Mensaje cifrado (%zu bytes):\n", plaintext_len);
-  print_bytes(stdout, ciphertext, plaintext_len, NULL);
+  print_bytes(stdout, ciphertext, plaintext_len, NULL, NULL);
   printf("Semilla recuperada: %u\n", recovered_seed);
   printf("Mensaje descifrado: %s\n", (const char *)decrypted);
 
@@ -218,7 +218,7 @@ static int challenge24_timestamp_token(void)
   }
 
   printf("Timestamp usado como semilla: %u\n", seed);
-  print_bytes(stdout, token, sizeof(token), "Token: ");
+  print_bytes(stdout, token, sizeof(token), "Token: ", NULL);
   printf("Espera simulada antes del ataque: %u segundos\n", simulated_wait);
   printf("Timestamp desde el que se inicia la búsqueda: %u\n",
          recovery_timestamp);

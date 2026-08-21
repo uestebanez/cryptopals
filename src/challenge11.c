@@ -133,7 +133,7 @@ int main(int argc,char** argv)
       printf("Error generating ciphertext\n");
       return -1;
     }
-    print_bytes(stdout,output,output_len,build_mode2txt(mode));
+    print_bytes(stdout,output,output_len,build_mode2txt(mode),NULL);
     printf("ciphered_len=%zu\n",output_len);
     int guess = aes128_detect_ecb_cbc(output,output_len);
     if( (guess == AES128_ECB_MODE && mode == build_mode_ecb) ||
@@ -144,5 +144,4 @@ int main(int argc,char** argv)
   }
   return 0;
 }
-
 

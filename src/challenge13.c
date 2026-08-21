@@ -73,7 +73,7 @@ int main(int argc,char** argv)
   //user -> last block of 4 bytes
   printf("profile=[%s]\n",profile);
   encrypt_profile(profile,ciphered,sizeof(ciphered),&clen);
-  print_bytes(stdout,ciphered,clen,"Ciphered profile:");
+  print_bytes(stdout,ciphered,clen,"Ciphered profile:",NULL);
   free(profile);
 
   aes128_ecb_decrypt(ciphered,clen,g_key,plain,sizeof(plain),&dlen);
@@ -91,7 +91,7 @@ int main(int argc,char** argv)
   profile = profile_for(buf,&prof_siz);
   encrypt_profile(profile,ciphered2,sizeof(ciphered2),&clen2);
   free(profile);
-  print_bytes(stdout,ciphered2,clen2,"Ciphered profile:");
+  print_bytes(stdout,ciphered2,clen2,"Ciphered profile:",NULL);
   
   // in first block we will find the "admin"  
   memcpy(&ciphered[clen-AES128_BYTES_IN_BLK],&ciphered2[AES128_BYTES_IN_BLK],

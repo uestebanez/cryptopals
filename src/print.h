@@ -20,8 +20,10 @@ void print_hex_as_ascii(const char* hex);
  * \param bytes buffer with the bytes
  * \param len length of the binary buffer
  * \param prefix, optional parameter (can be NULL) to add a prefix to the print
+ * \param suffix, optional parameter (can be NULL) to add a suffix to the print
  */
-void print_bytes(FILE* file,const uint8_t* bytes,size_t len,const char* prefix);
+void print_bytes(FILE* file,const uint8_t* bytes,size_t len,const char* prefix,
+                 const char* suffix);
 
 /**
  * \brief print a buffer of bytes in ascii if it is possible. If not, uses '.'
