@@ -929,6 +929,69 @@ un atacante que pueda modificar el criptograma puede alterar el mensaje de
 forma controlada. La defensa es usar cifrado autenticado, como AES-GCM o
 ChaCha20-Poly1305, y rechazar cualquier mensaje cuya autenticación falle.
 
+## Reto 27: recuperar la clave cuando IV = Key en CBC
+
+En CBC, la clave AES y el IV tienen funciones distintas. La clave debe ser
+secreta y puede reutilizarse durante su vida útil; el IV no es secreto, pero
+debe ser independiente de la clave y, normalmente, nuevo e impredecible para
+cada cifrado. Este reto modela el error grave de usar la misma secuencia de 16
+bytes para ambas cosas:
+
+```text
+IV = K
+```
+
+El atacante puede pedir que el servidor cifre un mensaje y obtiene tres bloques
+de criptograma `C₁`, `C₂` y `C₃`. También existe un endpoint de descifrado
+vulnerable: si el texto resultante contiene bytes no ASCII, el servidor expone
+ese texto en el error. En la demostración local, el texto descifrado se muestra
+directamente, que representa esa filtración.
+
+El atacante construye un nuevo criptograma con bloques válidos y controlados:
+
+```text
+C' = C₁ || 0 || C₁
+```
+
+Es decir, conserva el primer bloque, sustituye el segundo por 16 bytes cero y
+copia de nuevo el primer bloque como tercero. No necesita cifrar esos bloques
+ni conocer la clave: cualquier secuencia de 16 bytes puede enviarse a un
+descifrador CBC.
+
+Para abreviar, llamemos `I` al resultado de descifrar el primer bloque AES:
+
+```text
+I = Dₖ(C₁)
+```
+
+Al descifrar el criptograma manipulado, CBC produce:
+
+```text
+P'₁ = Dₖ(C₁) XOR IV  = I XOR K
+P'₂ = Dₖ(0)  XOR C₁
+P'₃ = Dₖ(C₁) XOR 0   = I
+```
+
+El segundo bloque no interesa y normalmente será basura. Los bloques primero y
+tercero sí son suficientes. Al aplicar XOR entre ellos, el valor intermedio
+`I` se cancela:
+
+```text
+P'₁ XOR P'₃
+= (I XOR K) XOR I
+= K
+```
+
+Por tanto, una vez que el servidor filtra `P'₁` y `P'₃`, el atacante recupera
+la clave AES completa. El programa cifra tres bloques de texto plano, sustituye
+el segundo bloque del criptograma por ceros, duplica el primero como tercero y
+aplica precisamente ese XOR para obtener una clave idéntica a la original.
+
+El problema no es CBC por sí solo: la recuperación exige las dos malas
+decisiones, reutilizar la clave como IV y filtrar el texto plano tras un error.
+Un IV independiente y una gestión de errores que no devuelva datos sensibles
+evitarían este ataque; el uso de AEAD añade además autenticación e integridad.
+
 ## Anexo: XOR como máscara de cambios
 
 XOR es una operación entre bits. La forma más útil de entenderla en este
