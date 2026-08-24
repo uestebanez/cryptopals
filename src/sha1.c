@@ -200,6 +200,24 @@ void SHA1Init(
 }
 
 
+/* SHA1InitV2 - Initialize from an existing state and processed byte length. */
+void SHA1InitV2(
+    SHA1_CTX * context,
+    const uint32_t state[5],
+    uint64_t initial_length)
+{
+    uint64_t initial_bits = initial_length * 8U;
+    unsigned int i;
+
+    for (i = 0; i < 5; i++)
+    {
+        context->state[i] = state[i];
+    }
+    context->count[0] = (uint32_t)initial_bits;
+    context->count[1] = (uint32_t)(initial_bits >> 32);
+}
+
+
 /* Run your data through this. */
 
 void SHA1Update(
@@ -313,4 +331,48 @@ void sha1_keyed_mac(
     SHA1Update(&context, key, key_len);
     SHA1Update(&context, message, message_len);
     SHA1Final(mac, &context);
+}
+
+bool sha1_keyed_mac_verify(
+    const uint8_t mac[20],
+    const uint8_t *key,
+    uint32_t key_len,
+    const uint8_t *message,
+    uint32_t message_len)
+{
+    uint8_t expected_mac[20];
+    uint8_t difference = 0U;
+    uint32_t i;
+
+    sha1_keyed_mac(expected_mac, key, key_len, message, message_len);
+    for (i = 0U; i < 20U; i++) {
+        difference |= expected_mac[i] ^ mac[i];
+    }
+
+    return difference == 0U;
+}
+
+uint32_t sha1_padding(
+    uint8_t padding[SHA1_PADDING_MAX_BYTES],
+    uint64_t message_len)
+{
+    uint64_t message_bits = message_len * 8U;
+    uint32_t padding_len = SHA1_BLOCK_BYTES -
+        (uint32_t)(message_len % SHA1_BLOCK_BYTES);
+    uint32_t i;
+
+    if (padding_len < 9U) {
+        padding_len += SHA1_BLOCK_BYTES;
+    }
+
+    padding[0] = 0x80U;
+    for (i = 1U; i < padding_len - 8U; i++) {
+        padding[i] = 0x00U;
+    }
+    for (i = 0U; i < 8U; i++) {
+        padding[padding_len - 8U + i] =
+            (uint8_t)(message_bits >> (56U - (i * 8U)));
+    }
+
+    return padding_len;
 }

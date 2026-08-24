@@ -992,6 +992,48 @@ decisiones, reutilizar la clave como IV y filtrar el texto plano tras un error.
 Un IV independiente y una gestión de errores que no devuelva datos sensibles
 evitarían este ataque; el uso de AEAD añade además autenticación e integridad.
 
+## Reto 29: extensión de longitud contra un MAC SHA-1 con prefijo secreto
+
+El reto usa un MAC construido de forma insegura con SHA-1:
+
+```text
+MAC = SHA1(clave_secreta || mensaje)
+```
+
+Aunque la clave no se conoce, SHA-1 es una función de Merkle-Damgård. El
+digest de un mensaje terminado contiene los cinco registros internos después
+de procesar `clave || mensaje || padding`. Por tanto, quien conozca el MAC y
+pueda adivinar la longitud de la clave puede continuar el cálculo como si
+conociera el contenido anterior.
+
+`challenge29.c` primero obtiene el MAC legítimo y convierte sus 20 bytes en
+las cinco palabras de estado de 32 bits, en orden big-endian. Después calcula
+el *glue padding* de SHA-1 para la longitud supuesta de `clave || mensaje`.
+Ese padding empieza con `80`, continúa con ceros y termina con la longitud
+original en bits, codificada en ocho bytes big-endian.
+
+El mensaje que se entrega al verificador no es una cadena de texto ordinaria:
+
+```text
+mensaje || glue_padding || ";admin=true"
+```
+
+El padding contiene bytes cero, así que se construye con `memcpy()` y se pasa
+su longitud explícita; no se puede tratar como una cadena terminada en `\0`.
+En el ejemplo, la clave tiene 16 bytes y el mensaje 43. Sus 59 bytes requieren
+69 bytes de padding, por lo que el estado recuperado representa 128 bytes ya
+procesados.
+
+`SHA1InitV2()` recibe ese estado y la longitud procesada de 128 bytes. Al
+añadir el payload y llamar a `SHA1Final()`, el contador interno incluye los
+bloques previos y genera el padding final correcto. El MAC obtenido verifica
+para el mensaje forjado, sin que el atacante haya utilizado la clave para
+calcularlo.
+
+La construcción `SHA1(clave || mensaje)` no debe utilizarse en sistemas
+reales. HMAC-SHA-1 (o, preferiblemente, HMAC-SHA-256) evita este ataque porque
+no expone un estado intermedio reutilizable como MAC final.
+
 ## Anexo: XOR como máscara de cambios
 
 XOR es una operación entre bits. La forma más útil de entenderla en este
