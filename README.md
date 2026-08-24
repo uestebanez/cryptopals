@@ -1006,11 +1006,11 @@ de procesar `clave || mensaje || padding`. Por tanto, quien conozca el MAC y
 pueda adivinar la longitud de la clave puede continuar el cálculo como si
 conociera el contenido anterior.
 
-`challenge29.c` primero obtiene el MAC legítimo y convierte sus 20 bytes en
-las cinco palabras de estado de 32 bits, en orden big-endian. Después calcula
-el *glue padding* de SHA-1 para la longitud supuesta de `clave || mensaje`.
-Ese padding empieza con `80`, continúa con ceros y termina con la longitud
-original en bits, codificada en ocho bytes big-endian.
+El ataque parte de un MAC legítimo y convierte sus 20 bytes en las cinco
+palabras de estado de 32 bits, en orden big-endian. Después calcula el *glue
+padding* de SHA-1 para la longitud supuesta de `clave || mensaje`. Ese padding
+empieza con `80`, continúa con ceros y termina con la longitud original en
+bits, codificada en ocho bytes big-endian.
 
 El mensaje que se entrega al verificador no es una cadena de texto ordinaria:
 
@@ -1018,17 +1018,16 @@ El mensaje que se entrega al verificador no es una cadena de texto ordinaria:
 mensaje || glue_padding || ";admin=true"
 ```
 
-El padding contiene bytes cero, así que se construye con `memcpy()` y se pasa
-su longitud explícita; no se puede tratar como una cadena terminada en `\0`.
-En el ejemplo, la clave tiene 16 bytes y el mensaje 43. Sus 59 bytes requieren
-69 bytes de padding, por lo que el estado recuperado representa 128 bytes ya
-procesados.
+El padding contiene bytes cero, así que el mensaje forjado se trata como una
+secuencia de bytes con longitud explícita; no se puede tratar como una cadena
+terminada en `\0`. En el ejemplo, la clave tiene 16 bytes y el mensaje 43. Sus
+59 bytes requieren 69 bytes de padding, por lo que el estado recuperado
+representa 128 bytes ya procesados.
 
-`SHA1InitV2()` recibe ese estado y la longitud procesada de 128 bytes. Al
-añadir el payload y llamar a `SHA1Final()`, el contador interno incluye los
-bloques previos y genera el padding final correcto. El MAC obtenido verifica
-para el mensaje forjado, sin que el atacante haya utilizado la clave para
-calcularlo.
+El cálculo de SHA-1 se reanuda desde ese estado con la longitud procesada de
+128 bytes. Al añadir el payload, el contador interno incluye los bloques
+previos y genera el padding final correcto. El MAC obtenido verifica para el
+mensaje forjado, sin que el atacante haya utilizado la clave para calcularlo.
 
 La construcción `SHA1(clave || mensaje)` no debe utilizarse en sistemas
 reales. HMAC-SHA-1 (o, preferiblemente, HMAC-SHA-256) evita este ataque porque
