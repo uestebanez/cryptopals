@@ -45,6 +45,14 @@ void SHA1(
     const char *str,
     uint32_t len);
 
+/* Calculates SHA1(key || message). */
+void sha1_keyed_mac(
+    uint8_t mac[20],
+    const uint8_t *key,
+    uint32_t key_len,
+    const uint8_t *message,
+    uint32_t message_len);
+
 #if defined(__cplusplus)
 }
 #endif

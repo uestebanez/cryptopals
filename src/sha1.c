@@ -300,3 +300,17 @@ void SHA1(
     SHA1Final((unsigned char *)hash_out, &ctx);
 }
 
+void sha1_keyed_mac(
+    uint8_t mac[20],
+    const uint8_t *key,
+    uint32_t key_len,
+    const uint8_t *message,
+    uint32_t message_len)
+{
+    SHA1_CTX context;
+
+    SHA1Init(&context);
+    SHA1Update(&context, key, key_len);
+    SHA1Update(&context, message, message_len);
+    SHA1Final(mac, &context);
+}
