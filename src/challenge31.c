@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 199309L
 
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 
 #include "msg.h"
@@ -103,6 +104,7 @@ int main(void)
 {
     uint8_t original_signature[SHA1_DIGEST_BYTES];
     uint8_t recovered_signature[SHA1_DIGEST_BYTES];
+    bool signatures_match;
 
     hmac_sha1(original_signature, g_secret_key, sizeof(g_secret_key) - 1U,
               g_message.bytes, g_message.length);
@@ -110,5 +112,14 @@ int main(void)
     recover_signature(g_message, recovered_signature);
     print_signature("Firma recuperada: ", recovered_signature);
 
-    return server_check(g_message, recovered_signature) ? 0 : 1;
+    signatures_match = memcmp(original_signature, recovered_signature,
+                              sizeof(original_signature)) == 0;
+    if (signatures_match) {
+        printf("La firma recuperada coincide con la firma original.\n");
+    } else {
+        printf("La firma recuperada no coincide con la firma original.\n");
+    }
+
+    return signatures_match && server_check(g_message, recovered_signature)
+        ? 0 : 1;
 }
