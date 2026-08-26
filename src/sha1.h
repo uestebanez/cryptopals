@@ -15,6 +15,7 @@ extern "C" {
 #endif
 
 #define SHA1_BLOCK_BYTES 64U
+#define SHA1_DIGEST_BYTES 20U
 #define SHA1_PADDING_MAX_BYTES 72U
 
 typedef struct
@@ -69,6 +70,14 @@ void sha1_keyed_mac(
 /* Verifies that mac is SHA1(key || message). */
 bool sha1_keyed_mac_verify(
     const uint8_t mac[20],
+    const uint8_t *key,
+    uint32_t key_len,
+    const uint8_t *message,
+    uint32_t message_len);
+
+/* Calculates HMAC-SHA1(key, message). */
+void hmac_sha1(
+    uint8_t mac[SHA1_DIGEST_BYTES],
     const uint8_t *key,
     uint32_t key_len,
     const uint8_t *message,

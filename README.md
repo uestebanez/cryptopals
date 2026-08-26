@@ -1033,6 +1033,49 @@ La construcción `SHA1(clave || mensaje)` no debe utilizarse en sistemas
 reales. HMAC-SHA-1 (o, preferiblemente, HMAC-SHA-256) evita este ataque porque
 no expone un estado intermedio reutilizable como MAC final.
 
+## Reto 31: recuperar un HMAC mediante una fuga temporal
+
+HMAC evita la extensión de longitud del reto 29, pero una aplicación puede
+seguir exponiendo la firma si la compara de forma insegura. El servidor de
+este reto calcula el HMAC-SHA1 correcto de un mensaje y compara los 20 bytes
+de la firma recibida de izquierda a derecha. Cada vez que un byte coincide,
+introduce un retraso fijo de 10 ms antes de continuar.
+
+Por tanto, una firma que falla en el primer byte se rechaza antes que otra que
+acierta el primer byte y falla en el segundo. Si `T` representa el tiempo de
+respuesta, cada byte correcto del prefijo añade aproximadamente el retraso
+configurado:
+
+```text
+T(firma con n bytes iniciales correctos)
+≈ T_base + n × 10 ms
+```
+
+El atacante recupera la firma por posiciones. Para el byte `i`, conserva los
+bytes anteriores ya recuperados, prueba los 256 valores posibles en esa
+posición y mide el tiempo de respuesta de cada petición. El candidato con el
+tiempo mayor es el que probablemente ha hecho coincidir un byte adicional. Se
+fija ese valor y se repite el proceso para el siguiente byte hasta recuperar
+los 20 bytes del HMAC.
+
+La firma real se muestra en la demostración solo para comprobar el resultado;
+un atacante real no necesita verla. En una red real hay ruido por planificación,
+latencia y carga del sistema, así que es habitual repetir cada medición y usar
+una media o una mediana. Un retraso menor acelera la demostración, pero también
+hace más difícil distinguir la señal del ruido.
+
+La demostración usa 10 ms por byte correcto. Este valor ofrece una separación
+más visible que retrasos de pocos milisegundos en una medición única, pero no
+es un umbral universal: la planificación del sistema puede introducir pausas
+mayores. Para un ataque fiable debe repetirse cada candidato y compararse su
+mediana de tiempos.
+
+La defensa no consiste en ocultar el tiempo artificial, sino en comparar las
+firmas en tiempo constante: se deben recorrer todos los bytes antes de decidir
+si son iguales, sin retornar al encontrar la primera diferencia. Debe usarse
+una primitiva de comparación constante proporcionada por la biblioteca
+criptográfica cuando esté disponible.
+
 ## Anexo: XOR como máscara de cambios
 
 XOR es una operación entre bits. La forma más útil de entenderla en este

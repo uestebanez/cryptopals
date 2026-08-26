@@ -352,6 +352,44 @@ bool sha1_keyed_mac_verify(
     return difference == 0U;
 }
 
+void hmac_sha1(
+    uint8_t mac[SHA1_DIGEST_BYTES],
+    const uint8_t *key,
+    uint32_t key_len,
+    const uint8_t *message,
+    uint32_t message_len)
+{
+    SHA1_CTX context;
+    uint8_t inner_hash[SHA1_DIGEST_BYTES];
+    uint8_t key_block[SHA1_BLOCK_BYTES];
+    uint8_t ipad[SHA1_BLOCK_BYTES];
+    uint8_t opad[SHA1_BLOCK_BYTES];
+    uint32_t i;
+
+    memset(key_block, 0, sizeof(key_block));
+    if (key_len > SHA1_BLOCK_BYTES) {
+        SHA1Init(&context);
+        SHA1Update(&context, key, key_len);
+        SHA1Final(key_block, &context);
+    } else {
+        memcpy(key_block, key, key_len);
+    }
+
+    for (i = 0U; i < SHA1_BLOCK_BYTES; i++) {
+        ipad[i] = key_block[i] ^ 0x36U;
+        opad[i] = key_block[i] ^ 0x5CU;
+    }
+    SHA1Init(&context);
+    SHA1Update(&context, ipad, sizeof(ipad));
+    SHA1Update(&context, message, message_len);
+    SHA1Final(inner_hash, &context);
+
+    SHA1Init(&context);
+    SHA1Update(&context, opad, sizeof(opad));
+    SHA1Update(&context, inner_hash, sizeof(inner_hash));
+    SHA1Final(mac, &context);
+}
+
 uint32_t sha1_padding(
     uint8_t padding[SHA1_PADDING_MAX_BYTES],
     uint64_t message_len)

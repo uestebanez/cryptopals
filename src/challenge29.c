@@ -3,16 +3,12 @@
 #include <string.h>
 #include <inttypes.h>
 
+#include "msg.h"
 #include "print.h"
 #include "sha1.h"
 
 static const uint8_t g_key[] = "YELLOW SUBMARINE";
 static uint8_t g_message[] = "The quick brown fox jumps over the lazy dog";
-
-typedef struct {
-    const uint8_t *bytes;
-    uint32_t length;
-} message_t;
 
 static bool server_verify(message_t message, const uint8_t mac[20])
 {
