@@ -1,3 +1,5 @@
+// usamos POSIX:
+// 199309L: POSIX.1b; incluye nanosleep() y clock_gettime().
 #define _POSIX_C_SOURCE 199309L
 
 #include <stdio.h>
@@ -11,7 +13,7 @@
  * A single timing sample is vulnerable to scheduler noise.  A future attacker
  * should repeat each candidate and compare median response times.
  */
-#define SERVER_COMPARE_DELAY_NS 10000000L
+#define SERVER_COMPARE_DELAY_NS 50000000L
 
 static const uint8_t g_secret_key[] = "server-secret-key";
 static const uint8_t g_message_bytes[] = "foo";
