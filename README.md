@@ -1076,6 +1076,125 @@ si son iguales, sin retornar al encontrar la primera diferencia. Debe usarse
 una primitiva de comparación constante proporcionada por la biblioteca
 criptográfica cuando esté disponible.
 
+## Reto 33: implementar Diffie-Hellman
+
+Diffie-Hellman permite que dos participantes acuerden un secreto compartido a
+través de un canal público. Ambos acuerdan primero dos parámetros que no son
+secretos: un primo `p` y un generador `g` del grupo. Alice escoge un exponente
+privado aleatorio `a`, mientras que Bob escoge independientemente `b`.
+
+Cada participante publica una clave derivada de su secreto:
+
+```text
+A = g^a mod p
+B = g^b mod p
+```
+
+Compartir `A` y `B` no revela directamente `a` ni `b`. Después, Alice combina
+la clave pública de Bob con su exponente privado, y Bob hace la operación
+simétrica:
+
+```text
+s_A = B^a mod p
+s_B = A^b mod p
+```
+
+Ambos resultados son el mismo secreto porque:
+
+```text
+s_A = (g^b)^a mod p = g^(ab) mod p
+s_B = (g^a)^b mod p = g^(ab) mod p
+```
+
+La prueba con números pequeños, como `p = 37` y `g = 5`, permite observar y
+verificar la igualdad fácilmente. Repetir el intercambio con un primo grande
+demuestra que el mismo procedimiento funciona con enteros de gran tamaño. En
+un sistema real se debe elegir un grupo estandarizado con parámetros vigentes.
+La dificultad para un observador consiste en obtener `a` o `b` a partir de `A`
+o `B`; ese problema se conoce como logaritmo discreto.
+
+Diffie-Hellman por sí solo no autentica a los participantes. Sin firmas,
+certificados o un secreto previamente compartido, un atacante activo puede
+situarse entre ambos y negociar un secreto distinto con cada lado. El reto usa
+los parámetros grandes proporcionados por [Cryptopals, reto 33](https://cryptopals.com/sets/5/challenges/33).
+
+## Anexo: GMP para enteros grandes
+
+GMP (*GNU Multiple Precision Arithmetic Library*) permite trabajar con enteros
+de tamaño arbitrario. Para el reto 33 se usa su familia `mpz_*`, destinada a
+enteros con signo. Un `mpz_t` no es un entero C normal: gestiona memoria
+interna y nunca debe accederse directamente a sus campos.
+
+Antes de usar cada valor hay que inicializarlo, y al terminar hay que liberar
+sus recursos. Las variantes plurales reciben una lista terminada en `NULL`:
+
+```c
+mpz_t p, g, private_key, public_key;
+
+mpz_inits(p, g, private_key, public_key, NULL);
+/* Usar los enteros. */
+mpz_clears(p, g, private_key, public_key, NULL);
+```
+
+### Variantes plurales
+
+Las funciones con `s` final son solo un atajo para aplicar la misma operación
+a varias variables independientes; no crean una colección ni un array. Por
+ejemplo, estas dos formas son equivalentes:
+
+```c
+mpz_init(p);
+mpz_init(g);
+mpz_init(private_key);
+```
+
+```c
+mpz_inits(p, g, private_key, NULL);
+```
+
+`mpz_clears(p, g, private_key, NULL)` equivale del mismo modo a llamar a
+`mpz_clear()` una vez por variable. El `NULL` final indica dónde termina la
+lista de argumentos; debe incluirse siempre.
+
+No se asigna con `=`. Para valores que caben en `unsigned long` se usa
+`mpz_set_ui()`, y para constantes grandes se convierte una cadena con
+`mpz_set_str()`. Esta última devuelve cero si la conversión es correcta:
+
+```c
+mpz_set_ui(g, 2U);
+if (mpz_set_str(p, "241031242692103258855207602219756607485695054850245994265411694195810883168261222889009385011211996", 10) != 0) {
+    /* La constante no era un entero válido en base 10. */
+}
+```
+
+La mayoría de las operaciones siguen el patrón `destino, operando1,
+operando2`. Por ejemplo, `mpz_add()`, `mpz_sub()` y `mpz_mul()` realizan
+aritmética básica; `mpz_mod()` calcula un resto y `mpz_cmp()` compara dos
+valores. Para mostrar un entero se puede usar `gmp_printf()` con el formato
+`%Zd`.
+
+La operación central de Diffie-Hellman es la exponenciación modular:
+
+```text
+A = g^a mod p
+```
+
+En GMP se expresa con `mpz_powm(A, g, a, p)`. Si Alice recibe la clave pública
+`B` de Bob, calcula el secreto compartido con la misma operación:
+
+```text
+s = B^a mod p
+```
+
+El resultado se obtiene con `mpz_powm(s, B, a, p)`. Bob calcula de forma
+análoga `A^b mod p`; ambos valores coinciden porque son `g^(ab) mod p`.
+
+GMP no debe usarse como fuente de aleatoriedad criptográfica para el exponente
+privado. Ese valor debe proceder de un generador criptográficamente seguro y
+convertirse a `mpz_t` antes de las operaciones. El manual oficial de GMP
+describe las funciones `mpz_*` y sus requisitos de inicialización y liberación:
+[manual de GMP](https://gmplib.org/manual/Integer-Functions.html).
+
 ## Anexo: XOR como máscara de cambios
 
 XOR es una operación entre bits. La forma más útil de entenderla en este

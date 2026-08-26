@@ -5,6 +5,11 @@ project(cryptopals LANGUAGES C CXX)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
+# PkgConfig permite consultar paquetes instalados mediante sus ficheros .pc.
+find_package(PkgConfig REQUIRED)
+# IMPORTED_TARGET crea PkgConfig::GMP con sus cabeceras, flags y bibliotecas.
+pkg_check_modules(GMP REQUIRED IMPORTED_TARGET gmp)
+
 add_library(base64 src/base64.c)
 add_library(fixed_xor src/fixed_xor.c)
 add_library(repeating_xor src/repeating_xor.c)
@@ -60,6 +65,7 @@ add_executable(challenge27 src/challenge27.c)
 add_executable(challenge28 src/challenge28.c)
 add_executable(challenge29 src/challenge29.c)
 add_executable(challenge31 src/challenge31.c)
+add_executable(challenge33 src/challenge33.c)
 
 target_link_libraries(challenge1 PRIVATE base64 convert)
 target_link_libraries(challenge3 PRIVATE fixed_xor base64 score)
@@ -83,6 +89,8 @@ target_link_libraries(challenge27 PRIVATE print aes128 pkcs7 random)
 target_link_libraries(challenge28 PRIVATE sha1 print)
 target_link_libraries(challenge29 PRIVATE sha1 print msg)
 target_link_libraries(challenge31 PRIVATE sha1 msg)
+# Al enlazar este target se propagan automáticamente los requisitos de GMP.
+target_link_libraries(challenge33 PRIVATE PkgConfig::GMP random)
 
 enable_testing()
 add_subdirectory(tests)
