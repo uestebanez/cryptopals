@@ -1118,6 +1118,34 @@ certificados o un secreto previamente compartido, un atacante activo puede
 situarse entre ambos y negociar un secreto distinto con cada lado. El reto usa
 los parámetros grandes proporcionados por [Cryptopals, reto 33](https://cryptopals.com/sets/5/challenges/33).
 
+## Reto 34: ataque de intermediario contra Diffie-Hellman
+
+Este reto muestra una variante de ataque de intermediario (*man in the
+middle*) cuando el intercambio Diffie-Hellman no está autenticado. Alice y Bob
+intercambian sus valores públicos a través de Mallory. En lugar de reenviar
+cada valor, Mallory lo sustituye por el primo público `p`.
+
+Al calcular el secreto, cada extremo eleva el valor recibido a su exponente
+privado módulo `p`. Por tanto, el secreto de ambos queda fijado a cero:
+
+```text
+p^a mod p = 0
+p^b mod p = 0
+```
+
+Mallory conoce también ese valor y puede derivar la misma clave simétrica que
+Alice y Bob. La demostración deriva una clave AES de los primeros 16 bytes del
+hash SHA-1 del secreto compartido y usa AES-CBC con un IV aleatorio para cada
+mensaje. Se comprueba el ataque en ambos sentidos: Alice cifra un mensaje para
+Bob, y Bob responde a Alice; Mallory intercepta los dos mensajes y puede
+descifrarlos.
+
+El cifrado no soluciona por sí solo este problema: protege los datos frente a
+quien no conoce la clave, pero aquí el atacante ha forzado que los extremos y
+él compartan la misma. Para evitarlo, el intercambio debe autenticar las
+claves públicas, por ejemplo mediante firmas, certificados o un protocolo de
+intercambio autenticado.
+
 ## Anexo: GMP para enteros grandes
 
 GMP (*GNU Multiple Precision Arithmetic Library*) permite trabajar con enteros
