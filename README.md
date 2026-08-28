@@ -1168,12 +1168,13 @@ otro secreto efímero `b` y responde con el *salt* registrado y:
 
 ```text
 B = (k · v + g^b) mod N
-u = SHA-256(A || B)
 ```
 
-Con la contraseña introducida por el usuario, el cliente vuelve a obtener
-`x`. A continuación, cliente y servidor calculan por caminos distintos el
-mismo secreto compartido:
+Una vez intercambiados `A` y `B`, ambos extremos calculan localmente `u =
+SHA-256(A || B)`. `u` no se transmite: los dos ya disponen de los mismos
+valores públicos necesarios para obtenerlo. Con la contraseña introducida por
+el usuario, el cliente vuelve a obtener `x`. A continuación, cliente y
+servidor calculan por caminos distintos el mismo secreto compartido:
 
 ```text
 S_cliente  = (B - k · g^x)^(a + u · x) mod N
@@ -1188,6 +1189,21 @@ Finalmente, el cliente demuestra que conoce `K` enviando `HMAC-SHA256(K,
 salt)`. El servidor calcula la misma prueba con su propia clave y la compara
 en tiempo constante. Una coincidencia autentica al cliente sin transmitir la
 contraseña ni la clave de sesión.
+
+```mermaid
+sequenceDiagram
+    participant C as Cliente
+    participant S as Servidor
+
+    Note over S: Registro: genera salt y guarda v = g^x mod N
+    C->>S: I, A = g^a mod N
+    S->>C: salt, B = (k · v + g^b) mod N
+    Note over C,S: Ambos calculan localmente u = SHA-256(A || B)
+    Note right of C: Calcula S_cliente y K = SHA-256(S_cliente)
+    Note left of S: Calcula S_servidor y K = SHA-256(S_servidor)
+    C->>S: HMAC-SHA256(K, salt)
+    S-->>C: OK si la prueba es válida
+```
 
 ## Anexo: GMP para enteros grandes
 
