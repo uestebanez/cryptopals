@@ -1202,7 +1202,9 @@ sequenceDiagram
     rect rgb(235, 245, 255)
         Note over C,S: Registro de usuario (canal seguro)
         C->>S: I, P
-        Note right of S: Genera salt; calcula x = SHA-256(salt || P)<br/>y v = g^x mod N; guarda I, salt y v
+        Note right of S: Genera salt
+        Note right of S: Calcula x a partir de salt y P
+        Note right of S: Calcula v y guarda I, salt y v
     end
     rect rgb(240, 255, 240)
     Note over C,S: Login posterior
