@@ -1151,20 +1151,24 @@ intercambio autenticado.
 SRP es un protocolo de autenticación de contraseña que permite a un cliente y
 un servidor acordar una clave de sesión sin que el servidor tenga que guardar
 la contraseña en claro. Ambos conocen los parámetros públicos de un grupo:
-un primo grande `N`, un generador `g` y el multiplicador `k`.
+un primo grande `N`, un generador `g` y el multiplicador `k`. El protocolo
+tiene dos fases distintas: el registro inicial y un login posterior.
 
-En el registro, el servidor genera un valor aleatorio llamado *salt* y calcula
-un verificador a partir de la contraseña:
+Durante el **registro**, el usuario proporciona al servidor su identidad `I` y
+elige una contraseña `P`. Esta operación debe realizarse sobre un canal seguro,
+porque en este momento el servidor recibe la contraseña. El servidor genera un
+valor aleatorio llamado *salt* y calcula un verificador a partir de ella:
 
 ```text
 x = SHA-256(salt || contraseña)
 v = g^x mod N
 ```
 
-El servidor conserva el *salt* y `v`, pero no necesita conservar `x` ni la
-contraseña original. Durante el inicio de sesión, el cliente elige un secreto
-efímero `a` y envía su identidad junto con `A = g^a mod N`. El servidor elige
-otro secreto efímero `b` y responde con el *salt* registrado y:
+El servidor asocia la identidad con el *salt* y `v`, pero descarta `x` y no
+necesita conservar la contraseña original. Durante el **login**, el cliente
+envía solo su identidad y el valor público efímero `A = g^a mod N`; la
+contraseña no se transmite de nuevo. El servidor recupera el registro asociado
+a `I`, elige otro secreto efímero `b` y responde con el *salt* registrado y:
 
 ```text
 B = (k · v + g^b) mod N
@@ -1195,7 +1199,13 @@ sequenceDiagram
     participant C as Cliente
     participant S as Servidor
 
-    Note over S: Registro: genera salt y guarda v = g^x mod N
+    rect rgb(235, 245, 255)
+        Note over C,S: Registro de usuario (canal seguro)
+        C->>S: I, P
+        Note right of S: Genera salt; calcula x = SHA-256(salt || P)<br/>y v = g^x mod N; guarda I, salt y v
+    end
+    rect rgb(240, 255, 240)
+    Note over C,S: Login posterior
     C->>S: I, A = g^a mod N
     S->>C: salt, B = (k · v + g^b) mod N
     Note over C,S: Ambos calculan localmente u = SHA-256(A || B)
@@ -1203,6 +1213,7 @@ sequenceDiagram
     Note left of S: Calcula S_servidor y K = SHA-256(S_servidor)
     C->>S: HMAC-SHA256(K, salt)
     S-->>C: OK si la prueba es válida
+    end
 ```
 
 ## Anexo: GMP para enteros grandes
