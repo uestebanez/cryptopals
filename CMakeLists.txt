@@ -67,6 +67,7 @@ add_executable(challenge29 src/challenge29.c)
 add_executable(challenge31 src/challenge31.c)
 add_executable(challenge33 src/challenge33.c)
 add_executable(challenge34 src/challenge34.c)
+add_executable(challenge36 src/challenge36.c)
 
 target_link_libraries(challenge1 PRIVATE base64 convert)
 target_link_libraries(challenge3 PRIVATE fixed_xor base64 score)
@@ -93,6 +94,7 @@ target_link_libraries(challenge31 PRIVATE sha1 msg)
 # Al enlazar este target se propagan automáticamente los requisitos de GMP.
 target_link_libraries(challenge33 PRIVATE PkgConfig::GMP random)
 target_link_libraries(challenge34 PRIVATE PkgConfig::GMP aes128 msg pkcs7 random sha1)
+target_link_libraries(challenge36 PRIVATE PkgConfig::GMP random)
 
 enable_testing()
 add_subdirectory(tests)

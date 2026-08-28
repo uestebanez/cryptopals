@@ -1146,6 +1146,49 @@ quien no conoce la clave, pero aquí el atacante ha forzado que los extremos y
 claves públicas, por ejemplo mediante firmas, certificados o un protocolo de
 intercambio autenticado.
 
+## Reto 36: Secure Remote Password (SRP)
+
+SRP es un protocolo de autenticación de contraseña que permite a un cliente y
+un servidor acordar una clave de sesión sin que el servidor tenga que guardar
+la contraseña en claro. Ambos conocen los parámetros públicos de un grupo:
+un primo grande `N`, un generador `g` y el multiplicador `k`.
+
+En el registro, el servidor genera un valor aleatorio llamado *salt* y calcula
+un verificador a partir de la contraseña:
+
+```text
+x = SHA-256(salt || contraseña)
+v = g^x mod N
+```
+
+El servidor conserva el *salt* y `v`, pero no necesita conservar `x` ni la
+contraseña original. Durante el inicio de sesión, el cliente elige un secreto
+efímero `a` y envía su identidad junto con `A = g^a mod N`. El servidor elige
+otro secreto efímero `b` y responde con el *salt* registrado y:
+
+```text
+B = (k · v + g^b) mod N
+u = SHA-256(A || B)
+```
+
+Con la contraseña introducida por el usuario, el cliente vuelve a obtener
+`x`. A continuación, cliente y servidor calculan por caminos distintos el
+mismo secreto compartido:
+
+```text
+S_cliente  = (B - k · g^x)^(a + u · x) mod N
+S_servidor = (A · v^u)^b mod N
+```
+
+La igualdad se debe a que `v = g^x`; ambos lados terminan calculando la misma
+potencia de `g` sin revelar la contraseña. El secreto se convierte en una
+clave de tamaño fijo mediante `K = SHA-256(S)`.
+
+Finalmente, el cliente demuestra que conoce `K` enviando `HMAC-SHA256(K,
+salt)`. El servidor calcula la misma prueba con su propia clave y la compara
+en tiempo constante. Una coincidencia autentica al cliente sin transmitir la
+contraseña ni la clave de sesión.
+
 ## Anexo: GMP para enteros grandes
 
 GMP (*GNU Multiple Precision Arithmetic Library*) permite trabajar con enteros
