@@ -1218,6 +1218,38 @@ sequenceDiagram
     end
 ```
 
+## Reto 37: romper SRP con una clave de sesión nula
+
+La seguridad del login SRP depende de que `A` sea un elemento válido del grupo.
+El servidor del reto 36 calcula su secreto como:
+
+```text
+S_servidor = (A · v^u)^b mod N
+```
+
+Si un atacante suplanta una identidad registrada y envía `A = 0`, la base de
+esa potencia pasa a ser cero, independientemente del verificador `v`, del
+parámetro de mezcla `u` y del secreto efímero `b`:
+
+```text
+S_servidor = (0 · v^u)^b mod N = 0
+```
+
+Por tanto, no hace falta conocer la contraseña ni participar en el registro.
+El atacante conoce de antemano el secreto compartido y deriva la misma clave
+de sesión que el servidor: `K = SHA-256(0)`. En esta implementación el entero
+cero se codifica para el hash como un único byte con valor `0x00`.
+
+Tras recibir la respuesta del servidor, que contiene el *salt* y `B`, el
+atacante calcula `HMAC-SHA256(K, salt)` y lo envía como si fuese la prueba de
+login legítima. Como el servidor deriva el mismo `K`, acepta el HMAC y lo
+autentica. `src/challenge37.c` reproduce esos pasos e informa de cada fase.
+
+La corrección debe aplicarse en el servidor antes de calcular `B`, `u` o el
+secreto compartido: debe rechazar cualquier valor público que cumpla
+`A mod N = 0`. Esta validación impide que el atacante fuerce una clave de
+sesión predecible.
+
 ## Anexo: GMP para enteros grandes
 
 GMP (*GNU Multiple Precision Arithmetic Library*) permite trabajar con enteros
