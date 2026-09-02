@@ -1396,3 +1396,42 @@ bits. Por ejemplo, convertir `_` (`0x5f`) en `=` (`0x3d`) requiere la máscara
 `0x62`, que invierte varios bits. Lo importante no es memorizar los valores:
 si conocemos el valor inicial y el que queremos al final, su XOR siempre
 construye la lista de cambios correcta.
+
+## Reto 38: ataque de diccionario offline contra SRP simplificado
+
+SRP pretende que el servidor pueda autenticar una contraseña sin recibirla ni
+almacenarla directamente. En un protocolo bien diseñado, un interlocutor que
+observe una autenticación no debería poder comprobar contraseñas candidatas
+sin iniciar nuevas sesiones con el cliente.
+
+La variante simplificada del reto pierde esa propiedad cuando un servidor
+malicioso controla la respuesta inicial de la autenticación. El cliente envía
+su valor público `A` y recibe un `salt` y un valor público `B`. Después calcula
+un secreto de sesión a partir de su contraseña y confirma que lo conoce con:
+
+```text
+HMAC(SHA-256(S), salt)
+```
+
+El atacante escoge una respuesta con un exponente privado conocido, por
+ejemplo `b = 1`, de forma que `B = g`. También conoce `A`, el `salt`, `B` y el
+valor de confirmación que envía el cliente. Aunque no conoce la contraseña,
+puede probar cada palabra `P` de un diccionario sin comunicarse de nuevo con el
+cliente:
+
+```text
+x = SHA-256(salt || P)
+v = g^x mod N
+S = (A · v^u)^b mod N
+```
+
+Si el HMAC derivado de ese `S` coincide con el HMAC capturado, `P` es la
+contraseña. La comparación funciona porque, para la contraseña correcta,
+ambos lados construyen el mismo secreto de sesión.
+
+El problema no es que el atacante pueda hacer muchos intentos: es que puede
+hacerlos de forma ilimitada y silenciosa, sin que el cliente pueda distinguir
+el ataque ni aplicar límites de intentos. Por eso un protocolo de autenticación
+debe autenticar la negociación o usar una variante de SRP que no permita a un
+servidor que controla los parámetros convertir la prueba del cliente en un
+verificador de contraseñas offline.
