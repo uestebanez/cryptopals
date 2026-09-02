@@ -3,6 +3,35 @@
 Este documento recoge las ideas principales que vamos descubriendo al resolver
 los retos de Cryptopals.
 
+## Índice
+
+- [Reto 4: detectar texto cifrado con XOR de un byte](#reto-4-detectar-texto-cifrado-con-xor-de-un-byte)
+- [Reto 5: XOR de clave repetida](#reto-5-xor-de-clave-repetida)
+- [Reto 6: romper XOR de clave repetida](#reto-6-romper-xor-de-clave-repetida)
+- [Reto 8: detectar AES en modo ECB](#reto-8-detectar-aes-en-modo-ecb)
+- [Reto 9: padding PKCS#7](#reto-9-padding-pkcs7)
+- [Reto 10: implementar CBC a partir de ECB](#reto-10-implementar-cbc-a-partir-de-ecb)
+- [Reto 12: descifrar un sufijo secreto byte a byte en ECB](#reto-12-descifrar-un-sufijo-secreto-byte-a-byte-en-ecb)
+- [Reto 13: ataque ECB cut-and-paste](#reto-13-ataque-ecb-cut-and-paste)
+- [Reto 16: modificar datos con CBC bit flipping](#reto-16-modificar-datos-con-cbc-bit-flipping)
+- [Reto 17: ataque de oráculo de padding en CBC](#reto-17-ataque-de-oráculo-de-padding-en-cbc)
+- [Reto 19: romper CTR con nonce reutilizado](#reto-19-romper-ctr-con-nonce-reutilizado)
+- [Reto 23: clonar un MT19937 a partir de sus salidas](#reto-23-clonar-un-mt19937-a-partir-de-sus-salidas)
+- [Reto 24: semillas de 16 bits](#reto-24-semillas-de-16-bits)
+- [Reto 25: romper un oráculo de edición aleatoria en CTR](#reto-25-romper-un-oráculo-de-edición-aleatoria-en-ctr)
+- [Reto 26: CTR bit flipping](#reto-26-ctr-bit-flipping)
+- [Reto 27: recuperar la clave cuando IV = Key en CBC](#reto-27-recuperar-la-clave-cuando-iv--key-en-cbc)
+- [Reto 29: extensión de longitud contra un MAC SHA-1 con prefijo secreto](#reto-29-extensión-de-longitud-contra-un-mac-sha-1-con-prefijo-secreto)
+- [Reto 31: recuperar un HMAC mediante una fuga temporal](#reto-31-recuperar-un-hmac-mediante-una-fuga-temporal)
+- [Reto 33: implementar Diffie-Hellman](#reto-33-implementar-diffie-hellman)
+- [Reto 34: ataque de intermediario contra Diffie-Hellman](#reto-34-ataque-de-intermediario-contra-diffie-hellman)
+- [Reto 36: Secure Remote Password (SRP)](#reto-36-secure-remote-password-srp)
+- [Reto 37: romper SRP con una clave de sesión nula](#reto-37-romper-srp-con-una-clave-de-sesión-nula)
+- [Reto 38: ataque de diccionario offline contra SRP simplificado](#reto-38-ataque-de-diccionario-offline-contra-srp-simplificado)
+- [Anexos](#anexos)
+  - [GMP para enteros grandes](#gmp-para-enteros-grandes)
+  - [XOR como máscara de cambios](#xor-como-máscara-de-cambios)
+
 ## Reto 4: detectar texto cifrado con XOR de un byte
 
 El fichero de entrada contiene una línea cifrada con XOR de un byte entre muchas
@@ -1250,7 +1279,48 @@ secreto compartido: debe rechazar cualquier valor público que cumpla
 `A mod N = 0`. Esta validación impide que el atacante fuerce una clave de
 sesión predecible.
 
-## Anexo: GMP para enteros grandes
+## Reto 38: ataque de diccionario offline contra SRP simplificado
+
+SRP pretende que el servidor pueda autenticar una contraseña sin recibirla ni
+almacenarla directamente. En un protocolo bien diseñado, un interlocutor que
+observe una autenticación no debería poder comprobar contraseñas candidatas
+sin iniciar nuevas sesiones con el cliente.
+
+La variante simplificada del reto pierde esa propiedad cuando un servidor
+malicioso controla la respuesta inicial de la autenticación. El cliente envía
+su valor público `A` y recibe un `salt` y un valor público `B`. Después calcula
+un secreto de sesión a partir de su contraseña y confirma que lo conoce con:
+
+```text
+HMAC(SHA-256(S), salt)
+```
+
+El atacante escoge una respuesta con un exponente privado conocido, por
+ejemplo `b = 1`, de forma que `B = g`. También conoce `A`, el `salt`, `B` y el
+valor de confirmación que envía el cliente. Aunque no conoce la contraseña,
+puede probar cada palabra `P` de un diccionario sin comunicarse de nuevo con el
+cliente:
+
+```text
+x = SHA-256(salt || P)
+v = g^x mod N
+S = (A · v^u)^b mod N
+```
+
+Si el HMAC derivado de ese `S` coincide con el HMAC capturado, `P` es la
+contraseña. La comparación funciona porque, para la contraseña correcta,
+ambos lados construyen el mismo secreto de sesión.
+
+El problema no es que el atacante pueda hacer muchos intentos: es que puede
+hacerlos de forma ilimitada y silenciosa, sin que el cliente pueda distinguir
+el ataque ni aplicar límites de intentos. Por eso un protocolo de autenticación
+debe autenticar la negociación o usar una variante de SRP que no permita a un
+servidor que controla los parámetros convertir la prueba del cliente en un
+verificador de contraseñas offline.
+
+## Anexos
+
+### GMP para enteros grandes
 
 GMP (*GNU Multiple Precision Arithmetic Library*) permite trabajar con enteros
 de tamaño arbitrario. Para el reto 33 se usa su familia `mpz_*`, destinada a
@@ -1268,7 +1338,7 @@ mpz_inits(p, g, private_key, public_key, NULL);
 mpz_clears(p, g, private_key, public_key, NULL);
 ```
 
-### Variantes plurales
+#### Variantes plurales
 
 Las funciones con `s` final son solo un atajo para aplicar la misma operación
 a varias variables independientes; no crean una colección ni un array. Por
@@ -1327,7 +1397,7 @@ convertirse a `mpz_t` antes de las operaciones. El manual oficial de GMP
 describe las funciones `mpz_*` y sus requisitos de inicialización y liberación:
 [manual de GMP](https://gmplib.org/manual/Integer-Functions.html).
 
-## Anexo: XOR como máscara de cambios
+### XOR como máscara de cambios
 
 XOR es una operación entre bits. La forma más útil de entenderla en este
 contexto es como una máscara de cambios: un `0` conserva un bit y un `1` lo
@@ -1396,42 +1466,3 @@ bits. Por ejemplo, convertir `_` (`0x5f`) en `=` (`0x3d`) requiere la máscara
 `0x62`, que invierte varios bits. Lo importante no es memorizar los valores:
 si conocemos el valor inicial y el que queremos al final, su XOR siempre
 construye la lista de cambios correcta.
-
-## Reto 38: ataque de diccionario offline contra SRP simplificado
-
-SRP pretende que el servidor pueda autenticar una contraseña sin recibirla ni
-almacenarla directamente. En un protocolo bien diseñado, un interlocutor que
-observe una autenticación no debería poder comprobar contraseñas candidatas
-sin iniciar nuevas sesiones con el cliente.
-
-La variante simplificada del reto pierde esa propiedad cuando un servidor
-malicioso controla la respuesta inicial de la autenticación. El cliente envía
-su valor público `A` y recibe un `salt` y un valor público `B`. Después calcula
-un secreto de sesión a partir de su contraseña y confirma que lo conoce con:
-
-```text
-HMAC(SHA-256(S), salt)
-```
-
-El atacante escoge una respuesta con un exponente privado conocido, por
-ejemplo `b = 1`, de forma que `B = g`. También conoce `A`, el `salt`, `B` y el
-valor de confirmación que envía el cliente. Aunque no conoce la contraseña,
-puede probar cada palabra `P` de un diccionario sin comunicarse de nuevo con el
-cliente:
-
-```text
-x = SHA-256(salt || P)
-v = g^x mod N
-S = (A · v^u)^b mod N
-```
-
-Si el HMAC derivado de ese `S` coincide con el HMAC capturado, `P` es la
-contraseña. La comparación funciona porque, para la contraseña correcta,
-ambos lados construyen el mismo secreto de sesión.
-
-El problema no es que el atacante pueda hacer muchos intentos: es que puede
-hacerlos de forma ilimitada y silenciosa, sin que el cliente pueda distinguir
-el ataque ni aplicar límites de intentos. Por eso un protocolo de autenticación
-debe autenticar la negociación o usar una variante de SRP que no permita a un
-servidor que controla los parámetros convertir la prueba del cliente en un
-verificador de contraseñas offline.
