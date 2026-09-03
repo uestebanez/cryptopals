@@ -28,8 +28,10 @@ los retos de Cryptopals.
 - [Reto 36: Secure Remote Password (SRP)](#reto-36-secure-remote-password-srp)
 - [Reto 37: romper SRP con una clave de sesión nula](#reto-37-romper-srp-con-una-clave-de-sesión-nula)
 - [Reto 38: ataque de diccionario offline contra SRP simplificado](#reto-38-ataque-de-diccionario-offline-contra-srp-simplificado)
+- [Reto 39: implementar RSA](#reto-39-implementar-rsa)
 - [Anexos](#anexos)
   - [GMP para enteros grandes](#gmp-para-enteros-grandes)
+  - [Generar enteros aleatorios con GMP](#generar-enteros-aleatorios-con-gmp)
   - [XOR como máscara de cambios](#xor-como-máscara-de-cambios)
 
 ## Reto 4: detectar texto cifrado con XOR de un byte
@@ -1318,6 +1320,50 @@ debe autenticar la negociación o usar una variante de SRP que no permita a un
 servidor que controla los parámetros convertir la prueba del cliente en un
 verificador de contraseñas offline.
 
+## Reto 39: implementar RSA
+
+RSA representa tanto el mensaje como las claves mediante enteros grandes. La
+implementación genera dos primos aleatorios distintos de 512 bits, `p` y `q`,
+y calcula el módulo público:
+
+```text
+n = p · q
+phi = (p - 1) · (q - 1)
+```
+
+El exponente público del reto es `e = 3`. Para que exista su inverso modular,
+debe cumplirse `gcd(e, phi) = 1`. Si no se cumple, `challenge39` muestra una
+traza y descarta ambos primos para generar una pareja nueva. Cuando la pareja
+es válida, calcula el exponente privado `d` tal que:
+
+```text
+e · d ≡ 1 mod phi
+```
+
+Las dos claves usan la estructura `rsa_key_t`, con los campos `n` y
+`exponent`. La variable `public_key` almacena `(n, e)` y `private_key`
+almacena `(n, d)`.
+
+RSA cifra un entero de mensaje `m` mediante la exponenciación modular:
+
+```text
+c = m^e mod n
+m = c^d mod n
+```
+
+`rsa_encrypt()` usa la clave pública y `rsa_decrypt()` la privada. La prueba
+integrada convierte el texto `Mensaje de prueba RSA` a un entero con
+`mpz_import()`, lo cifra, lo descifra y vuelve a exportar el resultado a bytes
+con `mpz_export()`. La comparación final confirma que los bytes recuperados
+son idénticos al mensaje original. El mensaje debe ser menor que `n`.
+
+Este es RSA sin relleno, útil para aprender la operación matemática pero
+inseguro para proteger datos reales. Un sistema real debe usar tamaños de
+clave actuales —como mínimo 2048 bits— y cifrado RSA-OAEP implementado por una
+biblioteca criptográfica consolidada. Las trazas del reto muestran `p`, `q`,
+`phi` y `d`; esos valores son secretos y nunca se deben registrar en un
+sistema real.
+
 ## Anexos
 
 ### GMP para enteros grandes
@@ -1396,6 +1442,50 @@ privado. Ese valor debe proceder de un generador criptográficamente seguro y
 convertirse a `mpz_t` antes de las operaciones. El manual oficial de GMP
 describe las funciones `mpz_*` y sus requisitos de inicialización y liberación:
 [manual de GMP](https://gmplib.org/manual/Integer-Functions.html).
+
+### Generar enteros aleatorios con GMP
+
+GMP incluye mecanismos para generar valores aleatorios, útiles en pruebas y
+simulaciones. No se usan para generar claves: no son una fuente de aleatoriedad
+criptográficamente segura. Para RSA, si un atacante puede predecir los números
+usados para construir la clave privada, puede llegar a reconstruirla.
+
+En el reto 39 se sigue otro flujo: `random_bytes()` obtiene bytes de
+`RAND_bytes()` de OpenSSL, y `mpz_import()` los interpreta como un entero sin
+signo en orden *big-endian*. GMP se ocupa de la aritmética de precisión
+arbitraria, pero la entropía procede de la fuente criptográfica:
+
+```c
+uint8_t bytes[64];
+
+random_bytes(bytes, sizeof(bytes));
+mpz_import(value, sizeof(bytes), 1, 1, 1, 0, bytes);
+```
+
+Para crear un candidato primo de exactamente 512 bits se fuerza el primer bit
+con `bytes[0] |= 0x80U`; de ese modo no puede tener menos de 512 bits. También
+se fuerza el último bit con `bytes[63] |= 0x01U`, para que sea impar y no se
+malgasten comprobaciones sobre números pares. Después
+`mpz_probab_prime_p(value, 25)` descarta los compuestos y se repite el proceso
+hasta obtener un candidato que pase la prueba.
+
+Comprobar que un número de 512 bits es primo dividiéndolo entre todos los
+impares hasta su raíz cuadrada sí daría una respuesta definitiva, pero no es
+viable. Si el candidato es aproximadamente `2^512`, su raíz cuadrada es
+`2^256`, del orden de `10^77`. Habría que probar una cantidad semejante de
+posibles divisores; ni siquiera miles de millones de comprobaciones por
+segundo permitirían terminar en una escala de tiempo útil.
+
+En su lugar, GMP aplica pruebas matemáticas que buscan evidencias de que el
+candidato es compuesto. Si una prueba encuentra una, el descarte es seguro:
+el número no es primo. Lo probabilístico aparece solo al aceptar un candidato
+que ha superado todas las rondas: no queda una demostración absoluta para un
+número tan grande, pero la posibilidad de aceptar por error un compuesto se
+vuelve ínfima. Con 25 rondas, GMP estima un límite asintótico inferior a
+`4^-25`, aproximadamente una entre `10^15`. GMP también descarta divisores
+pequeños; forzar que el candidato sea impar evita de entrada todos los pares.
+Para este reto es suficiente; una implementación de producción delegaría la
+generación completa de claves RSA en una biblioteca criptográfica consolidada.
 
 ### XOR como máscara de cambios
 

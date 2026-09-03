@@ -70,6 +70,7 @@ add_executable(challenge34 src/challenge34.c)
 add_executable(challenge36 src/challenge36.c)
 add_executable(challenge37 src/challenge37.c)
 add_executable(challenge38 src/challenge38.c)
+add_executable(challenge39 src/challenge39.c)
 
 target_link_libraries(challenge1 PRIVATE base64 convert)
 target_link_libraries(challenge3 PRIVATE fixed_xor base64 score)
@@ -99,6 +100,7 @@ target_link_libraries(challenge34 PRIVATE PkgConfig::GMP aes128 msg pkcs7 random
 target_link_libraries(challenge36 PRIVATE PkgConfig::GMP random)
 target_link_libraries(challenge37 PRIVATE PkgConfig::GMP random)
 target_link_libraries(challenge38 PRIVATE PkgConfig::GMP random)
+target_link_libraries(challenge39 PRIVATE PkgConfig::GMP random)
 
 enable_testing()
 add_subdirectory(tests)
