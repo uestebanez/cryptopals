@@ -1376,6 +1376,12 @@ claves públicas `(n_i, e)` y los tres criptogramas:
 c_i = m^3 mod n_i
 ```
 
+Se denomina ataque *broadcast* porque el atacante reúne varias transmisiones
+del mismo mensaje para destinatarios distintos, como si se hubiera difundido
+una única información a varios receptores. No requiere que la red implemente
+difusión real: basta reutilizar el mismo texto RSA sin relleno con suficientes
+claves públicas. Este caso concreto también se conoce como ataque de Håstad.
+
 `challenge40` encapsula la generación de cada módulo en `generate_modulus()`.
 La función crea `p` y `q`, comprueba que `gcd(e, phi(n)) = 1` y devuelve solo
 `n`; los primos no se exponen al atacante.
