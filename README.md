@@ -29,6 +29,7 @@ los retos de Cryptopals.
 - [Reto 37: romper SRP con una clave de sesión nula](#reto-37-romper-srp-con-una-clave-de-sesión-nula)
 - [Reto 38: ataque de diccionario offline contra SRP simplificado](#reto-38-ataque-de-diccionario-offline-contra-srp-simplificado)
 - [Reto 39: implementar RSA](#reto-39-implementar-rsa)
+- [Reto 40: ataque broadcast contra RSA](#reto-40-ataque-broadcast-contra-rsa)
 - [Anexos](#anexos)
   - [GMP para enteros grandes](#gmp-para-enteros-grandes)
   - [Generar enteros aleatorios con GMP](#generar-enteros-aleatorios-con-gmp)
@@ -1364,6 +1365,51 @@ biblioteca criptográfica consolidada. Las trazas del reto muestran `p`, `q`,
 `phi` y `d`; esos valores son secretos y nunca se deben registrar en un
 sistema real.
 
+## Reto 40: ataque broadcast contra RSA
+
+El reto 40 cifra el mismo mensaje `m` para tres destinatarios RSA distintos,
+con el exponente público pequeño `e = 3` y sin relleno. Cada transmisión usa
+primos nuevos para construir su módulo `n_i`; el atacante solo observa las
+claves públicas `(n_i, e)` y los tres criptogramas:
+
+```text
+c_i = m^3 mod n_i
+```
+
+`challenge40` encapsula la generación de cada módulo en `generate_modulus()`.
+La función crea `p` y `q`, comprueba que `gcd(e, phi(n)) = 1` y devuelve solo
+`n`; los primos no se exponen al atacante.
+
+El atacante aplica el teorema chino del resto. Para cada módulo construye un
+valor que es uno módulo su propio `n_i` y cero módulo los otros dos. Por
+ejemplo:
+
+```text
+N1 = n2 · n3
+r = N1 mod n1
+u1 = r^-1 mod n1
+P1 = N1 · u1
+```
+
+`u1` es el inverso modular de `r` respecto a `n1`; por eso `P1 mod n1 = 1`.
+El programa construye de forma análoga
+`P2` y `P3`, y combina los criptogramas:
+
+```text
+X = c1 · P1 + c2 · P2 + c3 · P3
+N = n1 · n2 · n3
+X = X mod N
+```
+
+Tras la reducción, `X` cumple las tres congruencias y equivale a `m^3` porque
+el mismo mensaje es menor que cada módulo. `mpz_root()` calcula la raíz cúbica
+exacta y recupera `m`, que se vuelve a convertir a bytes con `mpz_export()`
+para imprimirlo.
+
+Este ataque no funciona contra RSA-OAEP ni contra un esquema de relleno
+aleatorio equivalente: aunque se cifre el mismo texto, cada destinatario
+recibe entonces un mensaje codificado distinto.
+
 ## Anexos
 
 ### GMP para enteros grandes
@@ -1413,6 +1459,17 @@ mpz_set_ui(g, 2U);
 if (mpz_set_str(p, "241031242692103258855207602219756607485695054850245994265411694195810883168261222889009385011211996", 10) != 0) {
     /* La constante no era un entero válido en base 10. */
 }
+```
+
+Para copiar el valor de un entero GMP ya inicializado a otro se usa
+`mpz_set(destino, origen)`. Ambos valores deben haberse inicializado antes:
+
+```c
+mpz_t origen, destino;
+
+mpz_inits(origen, destino, NULL);
+mpz_set_ui(origen, 42U);
+mpz_set(destino, origen);
 ```
 
 La mayoría de las operaciones siguen el patrón `destino, operando1,
